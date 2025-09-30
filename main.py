@@ -11,10 +11,10 @@ def simulate_prisoners():
         boxes = list(prisoners.keys())
         random.shuffle(boxes)
 
-        for prisoner_id in range(cfg["num_prisoners"]):
+        for prisoner_id in prisoners:
             checked_boxes = {}
             for _ in range(cfg["total_box_checks"]):
-                choice = config.prisoner_strategy(prisoner_id, cfg["num_prisoners"], cfg["total_box_checks"], checked_boxes)
+                choice = config.prisoner_strategy(prisoner_id, prisoners, cfg["total_box_checks"], checked_boxes)
                 if boxes[choice] == prisoner_id:
                     prisoners[prisoner_id] = True
                     break

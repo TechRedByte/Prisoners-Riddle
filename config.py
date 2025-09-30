@@ -10,8 +10,8 @@ CONFIG = {
 def get_config():
     return CONFIG
 
-def prisoner_strategy(prisoner_id, num_prisoners, total_checks, checked_boxes):
+def prisoner_strategy(prisoner_id, prisoners, total_checks, checked_boxes):
     # Set strategy here
     # Example: Random choice strategy
-    available_boxes = [i for i in range(num_prisoners) if i not in checked_boxes]
+    available_boxes = [i for i in range(len(prisoners)) if i not in checked_boxes]
     return random.choice(available_boxes)
