@@ -15,3 +15,8 @@ def prisoner_strategy(prisoner_id, prisoners, total_checks, checked_boxes):
     # Example: Random choice strategy
     available_boxes = [i for i in range(len(prisoners)) if i not in checked_boxes]
     return random.choice(available_boxes)
+
+'''
+This is a sample configuration file. You can modify the parameters and strategy as needed.
+Copy this file as config.py to your working directory.
+'''

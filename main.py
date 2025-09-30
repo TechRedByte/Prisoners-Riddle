@@ -1,11 +1,31 @@
+import importlib.util
+import sys
 import random
+import os
 
-import config
 import utils.logging_utils as logging
 
-def simulate_prisoners():
+def import_config_module(working_dir):
+    config_path = os.path.join(working_dir, "config.py")
+    spec = importlib.util.spec_from_file_location("config", config_path)
+    if spec is None or spec.loader is None:
+        raise FileNotFoundError(f"Could not load config.py from {working_dir}")
+    config = importlib.util.module_from_spec(spec)
+    sys.modules["config"] = config
+    spec.loader.exec_module(config)
+    return config
+
+def get_working_directory():
+    while True:
+        WORKING_DIR = os.path.abspath(input("Enter the working directory: ").strip())
+        if os.path.isdir(WORKING_DIR):
+            return WORKING_DIR
+        else:
+            print(f"Directory {WORKING_DIR} does not exist. Please try again.")
+
+def simulate_prisoners(config, working_dir):
     cfg = config.get_config()
-    logging.load_logs()
+    logging.load_logs(working_dir)
     for sim in range(cfg["num_simulations"]):
         prisoners = {i: False for i in range(cfg["num_prisoners"])}
         boxes = list(prisoners.keys())
@@ -21,6 +41,9 @@ def simulate_prisoners():
                 else:
                     checked_boxes[choice] = boxes[choice]
 
-        logging.log_prisoners_results(sim, prisoners)
+        logging.log_prisoners_results(sim, prisoners, working_dir)
 
-simulate_prisoners()
+if __name__ == "__main__":
+    working_dir = get_working_directory()
+    config = import_config_module(working_dir)
+    simulate_prisoners(config, working_dir)
