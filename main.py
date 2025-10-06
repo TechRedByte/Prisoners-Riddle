@@ -23,10 +23,16 @@ def get_working_directory():
         else:
             print(f"Directory {WORKING_DIR} does not exist. Please try again.")
 
-def simulate_prisoners(config, working_dir):
+def simulate_prisoners():
+    working_dir = get_working_directory()
+    config = import_config_module(working_dir)
     cfg = config.get_config()
-    logging.load_logs(working_dir)
-    for sim in range(cfg["num_simulations"]):
+    last_sim = logging.load_logs(working_dir)
+    start_sim = last_sim + 1
+    if last_sim >= cfg["num_simulations"]:
+        print("All simulations have already been completed.")
+        return
+    for sim in range(start_sim, cfg["num_simulations"]):
         prisoners = {i: False for i in range(cfg["num_prisoners"])}
         boxes = list(prisoners.keys())
         random.shuffle(boxes)
@@ -42,8 +48,7 @@ def simulate_prisoners(config, working_dir):
                     checked_boxes[choice] = boxes[choice]
 
         logging.log_prisoners_results(sim, prisoners, working_dir)
+    print("All simulations completed.")    
 
 if __name__ == "__main__":
-    working_dir = get_working_directory()
-    config = import_config_module(working_dir)
-    simulate_prisoners(config, working_dir)
+    simulate_prisoners()

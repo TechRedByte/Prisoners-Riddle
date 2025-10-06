@@ -18,5 +18,5 @@ def prisoner_strategy(prisoner_id, prisoners, total_checks, checked_boxes):
 
 '''
 This is a sample configuration file. You can modify the parameters and strategy as needed.
-Copy this file as config.py to your working directory.
+Copy this file as config.py to each of your working directory.
 '''
