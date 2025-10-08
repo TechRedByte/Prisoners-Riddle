@@ -1,8 +1,6 @@
 import csv
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-import main
 
 def printWinPercentage(working_dir):
     prisonersLog = os.path.join(working_dir, 'prisoners_results.csv')
@@ -37,20 +35,18 @@ if __name__ == "__main__":
     working_dir = sys.argv[1]
     if not os.path.isdir(working_dir):
         print(f"Directory {working_dir} does not exist.")
-        working_dir = main.getWorkingDirectory()
+        print("Exiting.")
+        sys.exit(1)
     while True:
         print(f"\nWorking directory: {working_dir}")
         print("\nChoose an option:")
-        print("1. Change working directory")
-        print("2. Show win percentage")
-        print("3. Exit")
+        print("1. Show win percentage")
+        print("2. Exit")
         choice = input("Enter your choice: ").strip()
         if choice == '1':
-            working_dir = main.getWorkingDirectory()
-        elif choice == '2':
             printWinPercentage(working_dir)
-        elif choice == '3':
+        elif choice == '2':
             print("Exiting to main menu.")
-            break
+            sys.exit(0)
         else:
             print("Invalid choice. Please select a valid option.")
