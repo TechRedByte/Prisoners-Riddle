@@ -1,33 +1,56 @@
 import csv
+import sys
 import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import main
 
-def print_win_percentage(working_dir):
-    prisoners_log = os.path.join(working_dir, 'prisoners_results.csv')
-    if not os.path.exists(prisoners_log):
+def printWinPercentage(working_dir):
+    prisonersLog = os.path.join(working_dir, 'prisoners_results.csv')
+    if not os.path.exists(prisonersLog):
         print("No results file found.")
         return
 
-    sim_results = {}
-    max_sim_id = -1
-    with open(prisoners_log, mode='r', newline='') as file:
+    simResults = {}
+    maxSimId = -1
+    with open(prisonersLog, mode='r', newline='') as file:
         reader = csv.DictReader(file)
         for row in reader:
-            sim_id = int(row['Simulation'])
-            max_sim_id = max(max_sim_id, sim_id)
+            simId = int(row['Simulation'])
+            maxSimId = max(maxSimId, simId)
             found = row['FoundBox'] == 'True'
-            if sim_id not in sim_results:
-                sim_results[sim_id] = []
-            sim_results[sim_id].append(found)
+            if simId not in simResults:
+                simResults[simId] = []
+            simResults[simId].append(found)
 
-    if max_sim_id == -1:
+    if maxSimId == -1:
         print("No simulations found.")
         return
 
-    wins = sum(all(results) for results in sim_results.values())
-    total_sims = max_sim_id + 1
+    wins = sum(all(results) for results in simResults.values())
+    totalSims = maxSimId + 1
 
-    win_percentage = (wins / total_sims) * 100
-    win_str = f"{win_percentage:.10f}".rstrip('0').rstrip('.')
-    print(f"Win percentage: {win_str}%")
+    winPercentage = (wins / totalSims) * 100
+    winStr = f"{winPercentage:.10f}".rstrip('0').rstrip('.')
+    print(f"Win percentage: {winStr}%")
 
-print_win_percentage("experiments/test") #testing
+if __name__ == "__main__":
+    working_dir = sys.argv[1]
+    if not os.path.isdir(working_dir):
+        print(f"Directory {working_dir} does not exist.")
+        working_dir = main.getWorkingDirectory()
+    while True:
+        print(f"\nWorking directory: {working_dir}")
+        print("\nChoose an option:")
+        print("1. Change working directory")
+        print("2. Show win percentage")
+        print("3. Exit")
+        choice = input("Enter your choice: ").strip()
+        if choice == '1':
+            working_dir = main.getWorkingDirectory()
+        elif choice == '2':
+            printWinPercentage(working_dir)
+        elif choice == '3':
+            print("Exiting to main menu.")
+            break
+        else:
+            print("Invalid choice. Please select a valid option.")
