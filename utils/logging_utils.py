@@ -3,7 +3,7 @@ import os
 
 def loadLogs(working_dir):
     lastSim = -1
-    prisonersLog = os.path.join(working_dir, 'prisoners_results.csv')
+    prisonersLog = os.path.join(working_dir, 'results.csv')
     if not os.path.exists(prisonersLog) or os.stat(prisonersLog).st_size == 0:
         with open(prisonersLog, mode='w', newline='') as file:
             writer = csv.writer(file)
@@ -20,7 +20,7 @@ def loadLogs(working_dir):
     return lastSim
 
 def logPrisonersResults(simId, results, working_dir):
-    prisonersLog = os.path.join(working_dir, 'prisoners_results.csv')
+    prisonersLog = os.path.join(working_dir, 'results.csv')
     while True:
         try:
             with open(prisonersLog, mode='a', newline='') as file:
