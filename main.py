@@ -16,7 +16,7 @@ def importConfigModule(working_dir):
 	spec.loader.exec_module(config)
 	return config
 
-def getWorkingDirectory():
+def getWorkingDir():
 	while True:
 		working_dir = os.path.abspath(input("Enter the working directory: ").strip())
 		if os.path.isdir(working_dir):
@@ -51,7 +51,7 @@ def simulatePrisoners(working_dir=None, config=None):
 
 if __name__ == "__main__":
 	base_dir = os.path.dirname(os.path.abspath(__file__))
-	working_dir = getWorkingDirectory()
+	working_dir = getWorkingDir()
 	while True:
 		print(f"\nWorking directory: {working_dir}")
 		print(f"\nChoose an option:")
@@ -61,7 +61,7 @@ if __name__ == "__main__":
 		print(f"4. Exit")
 		choice = input("Make a selection (1-4): ").strip()
 		if choice == '1':
-			working_dir = getWorkingDirectory()
+			working_dir = getWorkingDir()
 		elif choice == '2':
 			config = importConfigModule(working_dir)
 			simulatePrisoners(working_dir, config)

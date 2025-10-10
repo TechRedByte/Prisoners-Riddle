@@ -2,6 +2,13 @@ import csv
 import sys
 import os
 
+def validateWorkingDir(working_dir):
+    if not os.path.isdir(working_dir) or not os.path.exists(os.path.join(working_dir, 'results.csv')):
+        print(f"Directory {working_dir} does not exist or lacks results.csv.")
+        print("Please choose a valid directory with a results.csv file.")
+        print("Returning to main menu.")
+        sys.exit(1)
+
 def printWinPercentage(working_dir):
     prisonersLog = os.path.join(working_dir, 'results.csv')
     if not os.path.exists(prisonersLog):
@@ -32,22 +39,23 @@ def printWinPercentage(working_dir):
     print(f"Win percentage: {winStr}%")
 
 if __name__ == "__main__":
-    working_dir = sys.argv[1]
-    if not os.path.isdir(working_dir):
-        print(f"Directory {working_dir} does not exist.")
-        print("Please choose a valid directory with a results.csv file.")
-        print("Returning to main menu.")
+    if len(sys.argv) != 2:
+        print("Usage: python plots_stats.py <working_directory>")
+        print("Exiting.")
         sys.exit(1)
+    else:
+        working_dir = sys.argv[1]
+    validateWorkingDir(working_dir)
     while True:
         print(f"\nWorking directory: {working_dir}")
         print("\nChoose an option:")
         print("1. Show win percentage")
-        print("2. Back to main menu")
+        print("2. Exit/Return to main menu")
         choice = input("Enter your choice: ").strip()
         if choice == '1':
             printWinPercentage(working_dir)
         elif choice == '2':
-            print("Returning to main menu.")
+            print("Exiting.")
             sys.exit(0)
         else:
             print("Invalid choice. Please select a valid option.")
