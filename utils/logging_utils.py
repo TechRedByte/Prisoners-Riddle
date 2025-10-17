@@ -7,7 +7,7 @@ def loadLogs(working_dir):
     if not os.path.exists(prisonersLog) or os.stat(prisonersLog).st_size == 0:
         with open(prisonersLog, mode='w', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(['Simulation', 'PrisonerID', 'FoundBox', 'AllFound'])
+            writer.writerow(['Simulation', 'PrisonerID', 'FoundBox'])
         print(f"Created new log file at {prisonersLog}")
     else:
         print(f"Log file {prisonersLog} already exists and is not empty. Appending new results.")
