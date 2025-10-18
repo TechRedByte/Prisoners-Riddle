@@ -32,7 +32,7 @@ def simulatePrisoners(working_dir=None, config=None):
 		print("All simulations have already been completed.")
 		return
 	for sim in range(startSim, cfg["num_simulations"]):
-		prisoners = {i: False for i in range(cfg["num_prisoners"])}
+		prisoners = {i: [0, False] for i in range(cfg["num_prisoners"])}
 		boxes = list(prisoners.keys())
 		random.shuffle(boxes)
 
@@ -41,10 +41,11 @@ def simulatePrisoners(working_dir=None, config=None):
 			for _ in range(cfg["total_box_checks"]):
 				choice = config.prisonerStrategy(prisonerId, prisoners, cfg["total_box_checks"], checkedBoxes)
 				if boxes[choice] == prisonerId:
-					prisoners[prisonerId] = True
+					prisoners[prisonerId] = (len(checkedBoxes) + 1, True)
 					break
 				else:
 					checkedBoxes[choice] = boxes[choice]
+					prisoners[prisonerId] = (len(checkedBoxes), False)
 
 		logging.logPrisonersResults(sim, prisoners, working_dir)
 	print("All simulations completed.")    

@@ -7,7 +7,7 @@ def loadLogs(working_dir):
     if not os.path.exists(prisonersLog) or os.stat(prisonersLog).st_size == 0:
         with open(prisonersLog, mode='w', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(['Simulation', 'PrisonerID', 'FoundBox'])
+            writer.writerow(['Simulation', 'PrisonerID', 'CheckedBoxesCount', 'FoundBox'])
         print(f"Created new log file at {prisonersLog}")
     else:
         print(f"Log file {prisonersLog} already exists and is not empty. Appending new results.")
@@ -25,9 +25,9 @@ def logPrisonersResults(simId, results, working_dir):
         try:
             with open(prisonersLog, mode='a', newline='') as file:
                 writer = csv.writer(file)
-                for prisonerId, found in results.items():
-                    writer.writerow([simId, prisonerId, found])
+                for prisonerId, (checkedBoxesCount, found) in results.items():
+                    writer.writerow([simId, prisonerId, checkedBoxesCount, found])
             break
         except Exception as e:
             print(f"Error logging prisoner results: {e}")
-            input("Press Enter to retry...")
+            input("Press Enter to retry or Ctrl+C to abort...")
