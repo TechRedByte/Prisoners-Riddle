@@ -1,75 +1,157 @@
 import importlib.util
-import subprocess
 import sys
 import random
 import os
+import csv
 
-import utils.logging_utils as logging
+class plots_stats:
+    def validateWorkingDir():
+        if not os.path.isdir(working_dir) or not os.path.exists(os.path.join(working_dir, 'results.csv')):
+            print(f"Directory {working_dir} does not exist or lacks results.csv.")
+            print("Please choose a valid directory with a results.csv file.")
+            print("Returning to main menu.")
+            sys.exit(1)
 
-def importConfigModule(working_dir):
-	configPath = os.path.join(working_dir, "config.py")
-	spec = importlib.util.spec_from_file_location("config", configPath)
-	if spec is None or spec.loader is None:
-		raise FileNotFoundError(f"Could not load config.py from {working_dir}")
-	config = importlib.util.module_from_spec(spec)
-	sys.modules["config"] = config
-	spec.loader.exec_module(config)
-	return config
+    def printWinPercentage():
+        prisonersLog = os.path.join(working_dir, 'results.csv')
+        if not os.path.exists(prisonersLog):
+            print("No results file found.")
+            return
+
+        simResults = {}
+        maxSimId = -1
+        with open(prisonersLog, mode='r', newline='') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                simId = int(row['Simulation'])
+                maxSimId = max(maxSimId, simId)
+                found = row['FoundBox'] == 'True'
+                if simId not in simResults:
+                    simResults[simId] = []
+                simResults[simId].append(found)
+
+        if maxSimId == -1:
+            print("No simulations found.")
+            return
+
+        wins = sum(all(results) for results in simResults.values())
+        totalSims = maxSimId + 1
+
+        winPercentage = (wins / totalSims) * 100
+        winStr = f"{winPercentage:.10f}".rstrip('0').rstrip('.')
+        print(f"Win percentage: {winStr}%")
+
+    def run():
+        while True:
+            print(f"\nWorking directory: {working_dir}")
+            print("\nChoose an option:")
+            print("1. Show win percentage")
+            print("2. Exit/Return to main menu")
+            choice = input("Enter your choice: ").strip()
+            if choice == '1':
+                plots_stats.printWinPercentage()
+            elif choice == '2':
+                print("Exiting.")
+                return
+            else:
+                print("Invalid choice. Please select a valid option.")
+
+class logging:
+    def loadLogs():
+        lastSim = -1
+        prisonersLog = os.path.join(working_dir, 'results.csv')
+        if not os.path.exists(prisonersLog) or os.stat(prisonersLog).st_size == 0:
+            with open(prisonersLog, mode='w', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(['Simulation', 'PrisonerID', 'CheckedBoxesCount', 'FoundBox'])
+            print(f"Created new log file at {prisonersLog}")
+        else:
+            print(f"Log file {prisonersLog} already exists and is not empty. Appending new results.")
+            with open(prisonersLog, mode='r', newline='') as file:
+                reader = csv.reader(file)
+                next(reader, None) # Skip header
+                for row in reader:
+                    if row and row[0].isdigit():
+                        lastSim = max(lastSim, int(row[0]))
+        return lastSim
+
+    def logPrisonersResults(simId, results):
+        prisonersLog = os.path.join(working_dir, 'results.csv')
+        while True:
+            try:
+                with open(prisonersLog, mode='a', newline='') as file:
+                    writer = csv.writer(file)
+                    for prisonerId, (checkedBoxesCount, found) in results.items():
+                        writer.writerow([simId, prisonerId, checkedBoxesCount, found])
+                break
+            except Exception as e:
+                print(f"Error logging prisoner results: {e}")
+                input("Press Enter to retry or Ctrl+C to abort...")
+
+def importConfigModule():
+    configPath = os.path.join(working_dir, "config.py")
+    spec = importlib.util.spec_from_file_location("config", configPath)
+    if spec is None or spec.loader is None:
+        raise FileNotFoundError(f"Could not load config.py from {working_dir}")
+    config = importlib.util.module_from_spec(spec)
+    sys.modules["config"] = config
+    spec.loader.exec_module(config)
+    return config
 
 def getWorkingDir():
-	while True:
-		working_dir = os.path.abspath(input("Enter the working directory: ").strip())
-		if os.path.isdir(working_dir):
-			return working_dir
-		else:
-			print(f"Directory {working_dir} does not exist. Please try again.")
+    while True:
+        working_dir = os.path.abspath(input("Enter the working directory: ").strip())
+        if os.path.isdir(working_dir):
+            return working_dir
+        else:
+            print(f"Directory {working_dir} does not exist. Please try again.")
 
-def simulatePrisoners(working_dir=None, config=None):
-	cfg = config.getConfig()
-	lastSim = logging.loadLogs(working_dir)
-	startSim = lastSim + 1
-	if startSim >= cfg["num_simulations"]:
-		print("All simulations have already been completed.")
-		return
-	for sim in range(startSim, cfg["num_simulations"]):
-		prisoners = {i: [0, False] for i in range(cfg["num_prisoners"])}
-		boxes = list(prisoners.keys())
-		random.shuffle(boxes)
+def simulatePrisoners():
+    config = importConfigModule()
+    cfg = config.getConfig()
+    lastSim = logging.loadLogs()
+    startSim = lastSim + 1
+    if startSim >= cfg["num_simulations"]:
+        print("All simulations have already been completed.")
+        return
+    for sim in range(startSim, cfg["num_simulations"]):
+        prisoners = {i: [0, False] for i in range(cfg["num_prisoners"])}
+        boxes = list(prisoners.keys())
+        random.shuffle(boxes)
 
-		for prisonerId in prisoners:
-			checkedBoxes = {}
-			for _ in range(cfg["total_box_checks"]):
-				choice = config.prisonerStrategy(prisonerId, prisoners, cfg["total_box_checks"], checkedBoxes)
-				if boxes[choice] == prisonerId:
-					prisoners[prisonerId] = (len(checkedBoxes) + 1, True)
-					break
-				else:
-					checkedBoxes[choice] = boxes[choice]
-					prisoners[prisonerId] = (len(checkedBoxes), False)
+        for prisonerId in prisoners:
+            checkedBoxes = {}
+            for _ in range(cfg["total_box_checks"]):
+                choice = config.prisonerStrategy(prisonerId, prisoners, cfg["total_box_checks"], checkedBoxes)
+                if boxes[choice] == prisonerId:
+                    prisoners[prisonerId] = (len(checkedBoxes) + 1, True)
+                    break
+                else:
+                    checkedBoxes[choice] = boxes[choice]
+                    prisoners[prisonerId] = (len(checkedBoxes), False)
 
-		logging.logPrisonersResults(sim, prisoners, working_dir)
-	print("All simulations completed.")    
+        logging.logPrisonersResults(sim, prisoners)
+    print("All simulations completed.")    
 
 if __name__ == "__main__":
-	base_dir = os.path.dirname(os.path.abspath(__file__))
-	working_dir = getWorkingDir()
-	while True:
-		print(f"\nWorking directory: {working_dir}")
-		print(f"\nChoose an option:")
-		print(f"1. Change working directory")
-		print(f"2. Run simulations")
-		print(f"3. Plot results")
-		print(f"4. Exit")
-		choice = input("Make a selection (1-4): ").strip()
-		if choice == '1':
-			working_dir = getWorkingDir()
-		elif choice == '2':
-			config = importConfigModule(working_dir)
-			simulatePrisoners(working_dir, config)
-		elif choice == '3':
-			subprocess.run([sys.executable, os.path.join(base_dir, 'utils', 'plots_stats.py'), working_dir])
-		elif choice == '4':
-			print("Exiting.")
-			break
-		else:
-			print("Invalid choice. Please select a valid option.")
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    working_dir = getWorkingDir()
+    while True:
+        print(f"\nWorking directory: {working_dir}")
+        print(f"\nChoose an option:")
+        print(f"1. Change working directory")
+        print(f"2. Run simulations")
+        print(f"3. Plot results")
+        print(f"4. Exit")
+        choice = input("Make a selection (1-4): ").strip()
+        if choice == '1':
+            working_dir = getWorkingDir()
+        elif choice == '2':
+            simulatePrisoners()
+        elif choice == '3':
+            plots_stats.run()
+        elif choice == '4':
+            print("Exiting.")
+            break
+        else:
+            print("Invalid choice. Please select a valid option.")
