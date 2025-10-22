@@ -5,19 +5,8 @@ import os
 import csv
 
 class plots_stats:
-    def validateWorkingDir():
-        if not os.path.isdir(working_dir) or not os.path.exists(os.path.join(working_dir, 'results.csv')):
-            print(f"Directory {working_dir} does not exist or lacks results.csv.")
-            print("Please choose a valid directory with a results.csv file.")
-            print("Returning to main menu.")
-            sys.exit(1)
-
     def printWinPercentage():
         prisonersLog = os.path.join(working_dir, 'results.csv')
-        if not os.path.exists(prisonersLog):
-            print("No results file found.")
-            return
-
         simResults = {}
         maxSimId = -1
         with open(prisonersLog, mode='r', newline='') as file:
@@ -42,6 +31,11 @@ class plots_stats:
         print(f"Win percentage: {winStr}%")
 
     def run():
+        prisonersLog = os.path.join(working_dir, 'results.csv')
+        if not os.path.exists(prisonersLog):
+            print("No results file found.")
+            return
+        
         while True:
             print(f"\nWorking directory: {working_dir}")
             print("\nChoose an option:")
