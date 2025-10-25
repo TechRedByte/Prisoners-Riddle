@@ -3,7 +3,7 @@
 A Python simulation of the **100 prisoners problem**, where each prisoner must find their own number hidden in one of 100 boxes.  
 This project allows you to run multiple simulations using **custom strategies**, view success rates, and manage runs through a clean working directory system.
 
-If you have any questions or suggestions, feel free to open an issue/discussion or submit a pull request! It would make my day. 😊
+If you have any questions or suggestions, feel free to open an issue or submit a pull request! It would make my day. 😊
 
 ---
 
