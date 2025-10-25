@@ -5,8 +5,7 @@ Copy this file as config.py to each of your working directories.
 
 import random
 
-CONFIG = {
-    # Settings for the simulation
+CONFIG = { # Settings for the simulation
     "num_prisoners": 100,
     "total_box_checks": 50,
     "num_simulations": 10000
