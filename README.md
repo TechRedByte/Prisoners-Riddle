@@ -53,7 +53,5 @@ See LICENSE.md for details.
 
 ## 🧩 Future Ideas
 - Additional statistical plots
-
 - Better GUI
-
 - Parallelized simulations for faster results
