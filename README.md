@@ -28,15 +28,16 @@ If **all** prisoners succeed, they are freed; if even one fails, they all lose.
 ## 📺 Video explanation & best strategy
 
 A clear video explanation of the 100 prisoners problem and the best strategy so far (cycle following) can be found here:
-[https://youtu.be/iSNsgj1OCLA?si=Bgq4OAlChz_tSI_g](https://)
+https://youtu.be/iSNsgj1OCLA?si=Bgq4OAlChz_tSI_g
 
 ---
 
 ## ⚙️ Usage
-1. Clone the repository
-2. Create a working directory
-3. Copy the config.py file to your working directory and configure your strategy and other parameters inside the config file
-4. Run the main Python file:
+1. Download the [latest release](https://github.com/TechRedByte/Prisoners-Riddle/releases/latest)
+2. Unzip the downloaded .zip file
+3. Create a working directory in the root folder (e.g., "Prisoners-Riddle/experiments/test1")
+4. Copy the config.py file to your working directory and configure your strategy and other parameters inside the config file
+5. Run the main Python file:
    ```bash
    python main.py
    ```
@@ -55,4 +56,4 @@ See LICENSE.md for details.
 
 - Better GUI
 
-- Parallelized simulations for faster results (when Python )
+- Parallelized simulations for faster results
