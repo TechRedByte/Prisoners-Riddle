@@ -1,6 +1,6 @@
 '''
 This is a sample configuration file. You can modify the parameters and strategy as needed.
-Copy this file as config.py to each of your working directory.
+Copy this file as config.py to each of your working directories.
 '''
 
 import random
@@ -15,8 +15,9 @@ CONFIG = {
 def getConfig():
     return CONFIG
 
-def prisonerStrategy(prisoner_id, prisoners, total_checks, checked_boxes):
-    # Set strategy here
-    # Example: Random choice strategy
-    available_boxes = [i for i in range(len(prisoners)) if i not in checked_boxes]
-    return random.choice(available_boxes)
+def prisonerStrategy(prisoner_id, prisoners, total_checks, checked_boxes): # Set strategy here
+    # Example: Loop strategy
+    if checked_boxes:
+        return(next(reversed(checked_boxes.values())))
+    else:
+        return prisoner_id
