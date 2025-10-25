@@ -34,8 +34,9 @@ A clear video explanation of the 100 prisoners problem and the best strategy so 
 
 ## ⚙️ Usage
 1. Clone the repository
-2. Copy the config.py file to your working directory and configure your strategy and other parameters inside the config file
-3. Run the main Python file:
+2. Create a working directory
+3. Copy the config.py file to your working directory and configure your strategy and other parameters inside the config file
+4. Run the main Python file:
    ```bash
    python main.py
    ```
