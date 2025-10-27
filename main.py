@@ -3,6 +3,7 @@ import sys
 import random
 import os
 import csv
+from matplotlib import pyplot as plt
 
 class plots_stats:
     def printWinPercentage():
@@ -28,9 +29,36 @@ class plots_stats:
 
         winPercentage = (wins / totalSims) * 100
         winStr = f"{winPercentage:.10f}".rstrip('0').rstrip('.')
-        print(f"Win percentage: {winStr}%")
+        print(f"\nWin percentage: {winStr}%")
 
-    def run():
+    def printAvgBoxChecks(cfg):
+        prisonersLog = os.path.join(working_dir, 'results.csv')
+        simResults = {}
+        avgChecksPerPrisoner = {}
+        with open(prisonersLog, mode='r', newline='') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                simId = int(row['Simulation'])
+                prisoner = int(row['PrisonerID'])
+                checkedBoxesCount = int(row['CheckedBoxesCount'])
+                if simId not in simResults:
+                    simResults[simId] = {}
+                simResults[simId][prisoner] = checkedBoxesCount
+
+        for prisoner in range(cfg["num_prisoners"]):
+            totalChecks = sum(simResults[simId].get(prisoner, 0) for simId in simResults)
+            avgChecksPerPrisoner[prisoner] = totalChecks / cfg["num_simulations"]
+        overall_avg = sum(avgChecksPerPrisoner.values()) / len(avgChecksPerPrisoner)
+        
+        plt.bar(avgChecksPerPrisoner.keys(), avgChecksPerPrisoner.values())
+        plt.axhline(y=overall_avg, color='r', linestyle='-', label=f'Overall Average: {overall_avg:.2f}')
+        plt.xlabel("Prisoner ID")
+        plt.ylabel("Average Checked Boxes")
+        plt.title("Average Checked Boxes per Prisoner")
+        plt.legend()
+        plt.show()
+
+    def run(cfg):
         prisonersLog = os.path.join(working_dir, 'results.csv')
         if not os.path.exists(prisonersLog):
             print("No results file found.")
@@ -40,11 +68,14 @@ class plots_stats:
             print(f"\nWorking directory: {working_dir}")
             print("\nChoose an option:")
             print("1. Show win percentage")
-            print("2. Exit/Return to main menu")
+            print("2. Show average checked boxes per prisoner")
+            print("3. Exit/Return to main menu")
             choice = input("Enter your choice: ").strip()
             if choice == '1':
                 plots_stats.printWinPercentage()
             elif choice == '2':
+                plots_stats.printAvgBoxChecks(cfg)
+            elif choice == '3':
                 print("Exiting.")
                 return
             else:
@@ -100,9 +131,7 @@ def getWorkingDir():
         else:
             print(f"Directory {working_dir} does not exist. Please try again.")
 
-def simulatePrisoners():
-    config = importConfigModule()
-    cfg = config.getConfig()
+def simulatePrisoners(cfg):
     lastSim = logging.loadLogs()
     startSim = lastSim + 1
     if startSim >= cfg["num_simulations"]:
@@ -130,6 +159,8 @@ def simulatePrisoners():
 if __name__ == "__main__":
     base_dir = os.path.dirname(os.path.abspath(__file__))
     working_dir = getWorkingDir()
+    config = importConfigModule()
+    cfg = config.getConfig()
     while True:
         print(f"\nWorking directory: {working_dir}")
         print(f"\nChoose an option:")
@@ -141,9 +172,9 @@ if __name__ == "__main__":
         if choice == '1':
             working_dir = getWorkingDir()
         elif choice == '2':
-            simulatePrisoners()
+            simulatePrisoners(cfg)
         elif choice == '3':
-            plots_stats.run()
+            plots_stats.run(cfg)
         elif choice == '4':
             print("Exiting.")
             break
