@@ -58,6 +58,24 @@ class plots_stats:
         plt.legend()
         plt.show()
 
+    def printPctFinds(cfg):
+        prisonersLog = os.path.join(working_dir, 'results.csv')
+        findCounts = {i: 0 for i in range(cfg["num_prisoners"])}
+        with open(prisonersLog, mode='r', newline='') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                prisoner = int(row['PrisonerID'])
+                found = row['FoundBox'] == 'True'
+                if found:
+                    findCounts[prisoner] += 1
+
+        pctFinds = {prisoner: (count / cfg["num_simulations"]) * 100 for prisoner, count in findCounts.items()}
+        plt.bar(pctFinds.keys(), pctFinds.values())
+        plt.xlabel("Prisoner ID")
+        plt.ylabel("Percentage of Finds (%)")
+        plt.title("Percentage of Finds per Prisoner")
+        plt.show()
+
     def run(cfg):
         prisonersLog = os.path.join(working_dir, 'results.csv')
         if not os.path.exists(prisonersLog):
@@ -69,13 +87,16 @@ class plots_stats:
             print("\nChoose an option:")
             print("1. Show win percentage")
             print("2. Show average checked boxes per prisoner")
-            print("3. Exit/Return to main menu")
+            print("3. Show percentage of finds per prisoner")
+            print("4. Exit/Return to main menu")
             choice = input("Enter your choice: ").strip()
             if choice == '1':
                 plots_stats.printWinPercentage()
             elif choice == '2':
                 plots_stats.printAvgBoxChecks(cfg)
             elif choice == '3':
+                plots_stats.printPctFinds(cfg)
+            elif choice == '4':
                 print("Exiting.")
                 return
             else:
