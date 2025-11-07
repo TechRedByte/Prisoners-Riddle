@@ -98,7 +98,7 @@ class plots_stats:
             print(f"\nWorking directory: {working_dir}")
             print("\nChoose an option:")
             print("1. Show win percentage")
-            print("2. Show average checked boxes per prisoner")
+            print("2. Show average number of checked boxes per prisoner")
             print("3. Show percentage of finds per prisoner")
             print("4. Exit/Return to main menu")
             choice = input("Enter your choice: ").strip()
