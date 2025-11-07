@@ -54,7 +54,6 @@ See LICENSE.md for details.
 ---
 
 ## 🧩 Future Ideas
-- Additional statistical plots
 - Better GUI
 - Seed customizability
 - Parallelized simulations for faster results
