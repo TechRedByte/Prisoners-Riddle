@@ -31,23 +31,28 @@ class plots_stats:
         winStr = f"{winPercentage:.10f}".rstrip('0').rstrip('.')
         print(f"\nWin percentage: {winStr}%")
 
-    def printAvgBoxChecks(cfg):
+    def printAvgBoxChecks():
         prisonersLog = os.path.join(working_dir, 'results.csv')
+        num_prisoners = -1
+        num_simulations = -1
         simResults = {}
         avgChecksPerPrisoner = {}
+
         with open(prisonersLog, mode='r', newline='') as file:
             reader = csv.DictReader(file)
             for row in reader:
                 simId = int(row['Simulation'])
                 prisoner = int(row['PrisonerID'])
                 checkedBoxesCount = int(row['CheckedBoxesCount'])
+                num_prisoners = max(num_prisoners, prisoner + 1)
+                num_simulations = max(num_simulations, simId + 1)
                 if simId not in simResults:
                     simResults[simId] = {}
                 simResults[simId][prisoner] = checkedBoxesCount
 
-        for prisoner in range(cfg["num_prisoners"]):
+        for prisoner in range(num_prisoners):
             totalChecks = sum(simResults[simId].get(prisoner, 0) for simId in simResults)
-            avgChecksPerPrisoner[prisoner] = totalChecks / cfg["num_simulations"]
+            avgChecksPerPrisoner[prisoner] = totalChecks / num_simulations
         overall_avg = sum(avgChecksPerPrisoner.values()) / len(avgChecksPerPrisoner)
         
         plt.bar(avgChecksPerPrisoner.keys(), avgChecksPerPrisoner.values())
@@ -58,25 +63,32 @@ class plots_stats:
         plt.legend()
         plt.show()
 
-    def printPctFinds(cfg):
+    def printPctFinds():
         prisonersLog = os.path.join(working_dir, 'results.csv')
-        findCounts = {i: 0 for i in range(cfg["num_prisoners"])}
+        num_prisoners = -1
+        num_simulations = -1
+        findCounts = {}
         with open(prisonersLog, mode='r', newline='') as file:
             reader = csv.DictReader(file)
             for row in reader:
                 prisoner = int(row['PrisonerID'])
+                simId = int(row['Simulation'])
                 found = row['FoundBox'] == 'True'
+                num_prisoners = max(num_prisoners, prisoner + 1)
+                num_simulations = max(num_simulations, simId + 1)
+                if prisoner not in findCounts:
+                    findCounts[prisoner] = 0
                 if found:
                     findCounts[prisoner] += 1
 
-        pctFinds = {prisoner: (count / cfg["num_simulations"]) * 100 for prisoner, count in findCounts.items()}
+        pctFinds = {prisoner: (count / num_simulations) * 100 for prisoner, count in findCounts.items()}
         plt.bar(pctFinds.keys(), pctFinds.values())
         plt.xlabel("Prisoner ID")
         plt.ylabel("Percentage of Finds (%)")
         plt.title("Percentage of Finds per Prisoner")
         plt.show()
 
-    def run(cfg):
+    def run():
         prisonersLog = os.path.join(working_dir, 'results.csv')
         if not os.path.exists(prisonersLog):
             print("No results file found.")
@@ -93,9 +105,9 @@ class plots_stats:
             if choice == '1':
                 plots_stats.printWinPercentage()
             elif choice == '2':
-                plots_stats.printAvgBoxChecks(cfg)
+                plots_stats.printAvgBoxChecks()
             elif choice == '3':
-                plots_stats.printPctFinds(cfg)
+                plots_stats.printPctFinds()
             elif choice == '4':
                 print("Exiting.")
                 return
@@ -195,7 +207,7 @@ if __name__ == "__main__":
         elif choice == '2':
             simulatePrisoners(cfg)
         elif choice == '3':
-            plots_stats.run(cfg)
+            plots_stats.run()
         elif choice == '4':
             print("Exiting.")
             break
