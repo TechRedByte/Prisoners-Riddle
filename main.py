@@ -80,12 +80,16 @@ class plots_stats:
                     findCounts[prisoner] = 0
                 if found:
                     findCounts[prisoner] += 1
-
         pctFinds = {prisoner: (count / num_simulations) * 100 for prisoner, count in findCounts.items()}
+        avgPctFinds = sum(pctFinds.values()) / len(pctFinds)
+
         plt.bar(pctFinds.keys(), pctFinds.values())
+        plt.axhline(y=avgPctFinds, color='r', linestyle='-', label=f'Overall Average: {avgPctFinds:.2f}%')
+        plt.ylim(0, 100)
         plt.xlabel("Prisoner ID")
         plt.ylabel("Percentage of Finds (%)")
         plt.title("Percentage of Finds per Prisoner")
+        plt.legend()
         plt.show()
 
     def run():
@@ -100,7 +104,7 @@ class plots_stats:
             print("1. Show win percentage")
             print("2. Show average number of checked boxes per prisoner")
             print("3. Show percentage of finds per prisoner")
-            print("4. Exit/Return to main menu")
+            print("4. Return to main menu")
             choice = input("Enter your choice: ").strip()
             if choice == '1':
                 plots_stats.printWinPercentage()
