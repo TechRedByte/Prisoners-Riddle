@@ -13,6 +13,8 @@ If you have any questions or suggestions, feel free to open an issue or submit a
 - Customize the number of prisoners and maximum box checks
 - Calculate and display:
   - Overall chance of success
+  - Average number of checked boxes per prisoner
+  - Percentage of finds per prisoner
 - Built-in directory management for saving results and configurations
 
 ---
