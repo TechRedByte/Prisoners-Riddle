@@ -7,7 +7,7 @@ CONFIG = { # Settings for the simulation
     "num_prisoners": 100,
     "total_box_checks": 50,
     "num_simulations": 10000,
-    "seed": 11  # Set to an integer for reproducible results or None for random seed
+    "seed": None  # Set to an integer for reproducible results or None for random seed
 }
 
 def getConfig():
