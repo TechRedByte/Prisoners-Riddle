@@ -34,7 +34,7 @@ class plots_stats:
         plt.xlabel("Prisoner ID")
         plt.ylabel("Average Checked Boxes")
         plt.title("Average Checked Boxes per Prisoner")
-        plt.legend()
+        plt.legend(loc='lower left')
         plt.show()
 
     def printPctFinds():
