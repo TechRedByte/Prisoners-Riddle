@@ -8,56 +8,29 @@ from matplotlib import pyplot as plt
 
 class plots_stats:
     def printWinPercentage():
-        prisonersLog = os.path.join(working_dir, 'results.csv')
-        simResults = {}
-        maxSimId = -1
-        with open(prisonersLog, mode='r', newline='') as file:
-            reader = csv.DictReader(file)
-            for row in reader:
-                simId = int(row['Simulation'])
-                maxSimId = max(maxSimId, simId)
-                found = row['FoundBox'] == 'True'
-                if simId not in simResults:
-                    simResults[simId] = []
-                simResults[simId].append(found)
+        results = saving.loadResults()
+        total_sims = len(results)
+        wins = sum(1 for result in results if result["escaped"])
 
-        if maxSimId == -1:
-            print("No simulations found.")
-            return
-
-        wins = sum(all(results) for results in simResults.values())
-        totalSims = maxSimId + 1
-
-        winPercentage = (wins / totalSims) * 100
+        winPercentage = (wins / total_sims) * 100
         winStr = f"{winPercentage:.10f}".rstrip('0').rstrip('.')
         print(f"\nWin percentage: {winStr}%")
 
     def printAvgBoxChecks():
-        prisonersLog = os.path.join(working_dir, 'results.csv')
-        num_prisoners = -1
-        num_simulations = -1
-        simResults = {}
-        avgChecksPerPrisoner = {}
+        results = saving.loadResults()
+        total_sims = len(results)
+        num_prisoners = len(results[0]["prisoners"])
+        checksPerPrisoner = {i: 0 for i in range(num_prisoners)}
 
-        with open(prisonersLog, mode='r', newline='') as file:
-            reader = csv.DictReader(file)
-            for row in reader:
-                simId = int(row['Simulation'])
-                prisoner = int(row['PrisonerID'])
-                checkedBoxesCount = int(row['CheckedBoxesCount'])
-                num_prisoners = max(num_prisoners, prisoner + 1)
-                num_simulations = max(num_simulations, simId + 1)
-                if simId not in simResults:
-                    simResults[simId] = {}
-                simResults[simId][prisoner] = checkedBoxesCount
-
-        for prisoner in range(num_prisoners):
-            totalChecks = sum(simResults[simId].get(prisoner, 0) for simId in simResults)
-            avgChecksPerPrisoner[prisoner] = totalChecks / num_simulations
-        overall_avg = sum(avgChecksPerPrisoner.values()) / len(avgChecksPerPrisoner)
+        for result in results:
+            for prisonerId, prisoner_data in enumerate(result["prisoners"]):
+                checksPerPrisoner[prisonerId] += len(prisoner_data["checked_boxes"])
+        avgChecksPerPrisoner = {prisoner: checks / total_sims for prisoner, checks in checksPerPrisoner.items()}
         
+        overallAvg = sum(avgChecksPerPrisoner.values()) / num_prisoners
+
         plt.bar(avgChecksPerPrisoner.keys(), avgChecksPerPrisoner.values())
-        plt.axhline(y=overall_avg, color='r', linestyle='-', label=f'Overall Average: {overall_avg:.2f}')
+        plt.axhline(y=overallAvg, color='r', linestyle='-', label=f'Overall Average: {overallAvg:.2f}')
         plt.xlabel("Prisoner ID")
         plt.ylabel("Average Checked Boxes")
         plt.title("Average Checked Boxes per Prisoner")
@@ -65,24 +38,18 @@ class plots_stats:
         plt.show()
 
     def printPctFinds():
-        prisonersLog = os.path.join(working_dir, 'results.csv')
-        num_prisoners = -1
-        num_simulations = -1
-        findCounts = {}
-        with open(prisonersLog, mode='r', newline='') as file:
-            reader = csv.DictReader(file)
-            for row in reader:
-                prisoner = int(row['PrisonerID'])
-                simId = int(row['Simulation'])
-                found = row['FoundBox'] == 'True'
-                num_prisoners = max(num_prisoners, prisoner + 1)
-                num_simulations = max(num_simulations, simId + 1)
-                if prisoner not in findCounts:
-                    findCounts[prisoner] = 0
-                if found:
-                    findCounts[prisoner] += 1
-        pctFinds = {prisoner: (count / num_simulations) * 100 for prisoner, count in findCounts.items()}
-        avgPctFinds = sum(pctFinds.values()) / len(pctFinds)
+        results = saving.loadResults()
+        total_sims = len(results)
+        num_prisoners = len(results[0]["prisoners"])
+        findsPerPrisoner = {i: 0 for i in range(num_prisoners)}
+
+        for result in results:
+            for prisonerId, prisoner_data in enumerate(result["prisoners"]):
+                if prisoner_data["found"]:
+                    findsPerPrisoner[prisonerId] += 1
+        pctFinds = {prisoner: (finds / total_sims) * 100 for prisoner, finds in findsPerPrisoner.items()}
+
+        avgPctFinds = sum(pctFinds.values()) / num_prisoners
 
         plt.bar(pctFinds.keys(), pctFinds.values())
         plt.axhline(y=avgPctFinds, color='r', linestyle='-', label=f'Overall Average: {avgPctFinds:.2f}%')
@@ -94,9 +61,8 @@ class plots_stats:
         plt.show()
 
     def run():
-        prisonersLog = os.path.join(working_dir, 'results.csv')
-        if not os.path.exists(prisonersLog):
-            print("No results file found.")
+        if not os.path.exists(resultsPath):
+            print("No results found. Please run simulations first.")
             return
         
         while True:
@@ -128,14 +94,19 @@ class saving:
         os.replace(resultsPath + '.tmp', resultsPath)
         os.replace(checkpointPath + '.tmp', checkpointPath)
             
-    def load():
-        if os.path.exists(resultsPath) and os.path.exists(checkpointPath):
+    def loadResults():
+        if os.path.exists(resultsPath):
             with open(resultsPath, 'rb') as file:
                 results = pickle.load(file)
+            return results
+        return None
+    
+    def loadCheckpoint():
+        if os.path.exists(checkpointPath):
             with open(checkpointPath, 'rb') as file:
                 checkpoint = pickle.load(file)
-            return results, checkpoint
-        return None, None
+            return checkpoint
+        return None
 
 def importConfigModule():
     configPath = os.path.join(working_dir, "config.py")
@@ -157,7 +128,8 @@ def getWorkingDir():
             print(f"Directory {working_dir} does not exist. Please try again.")
 
 def simulatePrisoners():
-    results, checkpoint = saving.load()
+    results = saving.loadResults()
+    checkpoint = saving.loadCheckpoint()
     if checkpoint:
         startSim = checkpoint.get("last_simulation") + 1
         rng = random.Random(cfg.get("seed", None))
