@@ -3,6 +3,7 @@ import sys
 import random
 import os
 import csv
+import pickle
 from matplotlib import pyplot as plt
 
 class plots_stats:
@@ -118,37 +119,23 @@ class plots_stats:
             else:
                 print("Invalid choice. Please select a valid option.")
 
-class logging:
-    def loadLogs():
-        lastSim = -1
-        prisonersLog = os.path.join(working_dir, 'results.csv')
-        if not os.path.exists(prisonersLog) or os.stat(prisonersLog).st_size == 0:
-            with open(prisonersLog, mode='w', newline='') as file:
-                writer = csv.writer(file)
-                writer.writerow(['Simulation', 'PrisonerID', 'CheckedBoxesCount', 'FoundBox'])
-            print(f"Created new log file at {prisonersLog}")
-        else:
-            print(f"Log file {prisonersLog} already exists and is not empty. Appending new results.")
-            with open(prisonersLog, mode='r', newline='') as file:
-                reader = csv.reader(file)
-                next(reader, None) # Skip header
-                for row in reader:
-                    if row and row[0].isdigit():
-                        lastSim = max(lastSim, int(row[0]))
-        return lastSim
-
-    def logPrisonersResults(simId, results):
-        prisonersLog = os.path.join(working_dir, 'results.csv')
-        while True:
-            try:
-                with open(prisonersLog, mode='a', newline='') as file:
-                    writer = csv.writer(file)
-                    for prisonerId, (checkedBoxesCount, found) in results.items():
-                        writer.writerow([simId, prisonerId, checkedBoxesCount, found])
-                break
-            except Exception as e:
-                print(f"Error logging prisoner results: {e}")
-                input("Press Enter to retry or Ctrl+C to abort...")
+class saving:
+    def save(results, checkpoint):
+        with open(resultsPath + '.tmp', 'wb') as file:
+            pickle.dump(results, file)
+        with open(checkpointPath + '.tmp', 'wb') as file:
+            pickle.dump(checkpoint, file)
+        os.replace(resultsPath + '.tmp', resultsPath)
+        os.replace(checkpointPath + '.tmp', checkpointPath)
+            
+    def load():
+        if os.path.exists(resultsPath) and os.path.exists(checkpointPath):
+            with open(resultsPath, 'rb') as file:
+                results = pickle.load(file)
+            with open(checkpointPath, 'rb') as file:
+                checkpoint = pickle.load(file)
+            return results, checkpoint
+        return None, None
 
 def importConfigModule():
     configPath = os.path.join(working_dir, "config.py")
@@ -161,6 +148,7 @@ def importConfigModule():
     return config
 
 def getWorkingDir():
+    global working_dir
     while True:
         working_dir = os.path.abspath(input("Enter the working directory: ").strip())
         if os.path.isdir(working_dir):
@@ -168,36 +156,57 @@ def getWorkingDir():
         else:
             print(f"Directory {working_dir} does not exist. Please try again.")
 
-def simulatePrisoners(cfg):
-    lastSim = logging.loadLogs()
-    startSim = lastSim + 1
+def simulatePrisoners():
+    results, checkpoint = saving.load()
+    if checkpoint:
+        startSim = checkpoint.get("last_simulation") + 1
+        rng = random.Random(cfg.get("seed", None))
+        rng.setstate(checkpoint.get("rng_state"))
+        print(f"Resuming from simulation {startSim}.")
+    else:
+        startSim = 0
+        results = []
+        rng = random.Random(cfg.get("seed", None))
+        checkpoint = {"last_simulation": -1}
+        print("Starting new simulations.")
+
     if startSim >= cfg["num_simulations"]:
         print("All simulations have already been completed.")
         return
+    
     for sim in range(startSim, cfg["num_simulations"]):
         prisoners = {i: [0, False] for i in range(cfg["num_prisoners"])}
         boxes = list(prisoners.keys())
-        random.shuffle(boxes)
+        rng.shuffle(boxes)
+        results.append({"escaped": None, "prisoners": []})
 
         for prisonerId in prisoners:
             checkedBoxes = {}
             for _ in range(cfg["total_box_checks"]):
-                choice = config.prisonerStrategy(prisonerId, prisoners, cfg["total_box_checks"], checkedBoxes)
+                choice = config.prisonerStrategy(rng, prisonerId, prisoners, cfg["total_box_checks"], checkedBoxes)
                 if boxes[choice] == prisonerId:
-                    prisoners[prisonerId] = (len(checkedBoxes) + 1, True)
+                    checkedBoxes[choice] = boxes[choice]
+                    prisoners[prisonerId] = (checkedBoxes, True)
                     break
                 else:
                     checkedBoxes[choice] = boxes[choice]
-                    prisoners[prisonerId] = (len(checkedBoxes), False)
+                    prisoners[prisonerId] = (checkedBoxes, False)
 
-        logging.logPrisonersResults(sim, prisoners)
-    print("All simulations completed.")    
+        results[-1]["escaped"] = all(prisoners[prisoner][1] for prisoner in prisoners)
+        for prisoner in prisoners:
+            results[-1]["prisoners"].append({"found": prisoners[prisoner][1], "checked_boxes": prisoners[prisoner][0]})
+
+        saving.save(results, {"last_simulation": sim, "rng_state": rng.getstate()})
+    print("All simulations completed.")
 
 if __name__ == "__main__":
     base_dir = os.path.dirname(os.path.abspath(__file__))
     working_dir = getWorkingDir()
     config = importConfigModule()
     cfg = config.getConfig()
+    resultsPath = os.path.join(working_dir, 'results.pkl')
+    checkpointPath = os.path.join(working_dir, 'checkpoint.pkl')
+
     while True:
         print(f"\nWorking directory: {working_dir}")
         print(f"\nChoose an option:")
@@ -207,9 +216,9 @@ if __name__ == "__main__":
         print(f"4. Exit")
         choice = input("Make a selection (1-4): ").strip()
         if choice == '1':
-            working_dir = getWorkingDir()
+            getWorkingDir()
         elif choice == '2':
-            simulatePrisoners(cfg)
+            simulatePrisoners()
         elif choice == '3':
             plots_stats.run()
         elif choice == '4':
