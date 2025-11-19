@@ -2,8 +2,8 @@ import importlib.util
 import sys
 import random
 import os
-import csv
 import pickle
+import time
 from matplotlib import pyplot as plt
 
 class plots_stats:
@@ -89,10 +89,21 @@ class saving:
     def save(results, checkpoint):
         with open(resultsPath + '.tmp', 'wb') as file:
             pickle.dump(results, file)
+        for _ in range(20):
+            try:
+                os.replace(resultsPath + '.tmp', resultsPath)
+                break
+            except PermissionError:
+                time.sleep(0.01)
+                
         with open(checkpointPath + '.tmp', 'wb') as file:
             pickle.dump(checkpoint, file)
-        os.replace(resultsPath + '.tmp', resultsPath)
-        os.replace(checkpointPath + '.tmp', checkpointPath)
+        for _ in range(20):
+            try:
+                os.replace(checkpointPath + '.tmp', checkpointPath)
+                break
+            except PermissionError:
+                time.sleep(0.01)
             
     def loadResults():
         if os.path.exists(resultsPath):
@@ -130,7 +141,7 @@ def getWorkingDir():
 def simulatePrisoners():
     results = saving.loadResults()
     checkpoint = saving.loadCheckpoint()
-    if checkpoint:
+    if checkpoint and results:
         startSim = checkpoint.get("last_simulation") + 1
         rng = random.Random(cfg.get("seed", None))
         rng.setstate(checkpoint.get("rng_state"))
@@ -139,7 +150,7 @@ def simulatePrisoners():
         startSim = 0
         results = []
         rng = random.Random(cfg.get("seed", None))
-        checkpoint = {"last_simulation": -1}
+        checkpoint = {"last_simulation": -1, "rng_state": rng.getstate()}
         print("Starting new simulations.")
 
     if startSim >= cfg["num_simulations"]:
@@ -168,7 +179,7 @@ def simulatePrisoners():
         for prisoner in prisoners:
             results[-1]["prisoners"].append({"found": prisoners[prisoner][1], "checked_boxes": prisoners[prisoner][0]})
 
-        saving.save(results, {"last_simulation": sim, "rng_state": rng.getstate()})
+    saving.save(results, {"last_simulation": sim, "rng_state": rng.getstate()})
     print("All simulations completed.")
 
 if __name__ == "__main__":
