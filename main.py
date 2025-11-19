@@ -95,7 +95,9 @@ class saving:
                 break
             except PermissionError:
                 time.sleep(0.01)
-                
+        else:
+            print("Warning: Could not save results due to persistent PermissionError.")
+
         with open(checkpointPath + '.tmp', 'wb') as file:
             pickle.dump(checkpoint, file)
         for _ in range(20):
@@ -104,6 +106,8 @@ class saving:
                 break
             except PermissionError:
                 time.sleep(0.01)
+        else:
+            print("Warning: Could not save checkpoint due to persistent PermissionError.")
             
     def loadResults():
         if os.path.exists(resultsPath):
@@ -179,7 +183,7 @@ def simulatePrisoners():
         for prisoner in prisoners:
             results[-1]["prisoners"].append({"found": prisoners[prisoner][1], "checked_boxes": prisoners[prisoner][0]})
 
-    saving.save(results, {"last_simulation": sim, "rng_state": rng.getstate()})
+        saving.save(results, {"last_simulation": sim, "rng_state": rng.getstate()})
     print("All simulations completed.")
 
 if __name__ == "__main__":
