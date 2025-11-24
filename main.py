@@ -96,7 +96,7 @@ class saving:
             except PermissionError:
                 time.sleep(0.01)
         else:
-            print("Warning: Could not save results due to persistent PermissionError.")
+            raise PermissionError("Could not save results due to persistent PermissionError.")
 
         with open(checkpointPath + '.tmp', 'wb') as file:
             pickle.dump(checkpoint, file)
@@ -107,7 +107,7 @@ class saving:
             except PermissionError:
                 time.sleep(0.01)
         else:
-            print("Warning: Could not save checkpoint due to persistent PermissionError.")
+            raise PermissionError("Could not save checkpoint due to persistent PermissionError.")
             
     def loadResults():
         if os.path.exists(resultsPath):
@@ -135,9 +135,13 @@ def importConfigModule():
 
 def getWorkingDir():
     global working_dir
+    global resultsPath
+    global checkpointPath
     while True:
         working_dir = os.path.abspath(input("Enter the working directory: ").strip())
         if os.path.isdir(working_dir):
+            resultsPath = os.path.join(working_dir, 'results.pkl')
+            checkpointPath = os.path.join(working_dir, 'checkpoint.pkl')
             return working_dir
         else:
             print(f"Directory {working_dir} does not exist. Please try again.")
@@ -191,8 +195,6 @@ if __name__ == "__main__":
     working_dir = getWorkingDir()
     config = importConfigModule()
     cfg = config.getConfig()
-    resultsPath = os.path.join(working_dir, 'results.pkl')
-    checkpointPath = os.path.join(working_dir, 'checkpoint.pkl')
 
     while True:
         print(f"\nWorking directory: {working_dir}")
