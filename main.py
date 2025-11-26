@@ -1,6 +1,7 @@
 import importlib.util
 import sys
 import random
+import inspect
 import os
 import pickle
 import time
@@ -8,7 +9,7 @@ from matplotlib import pyplot as plt
 
 class plots_stats:
     def printWinPercentage():
-        results = saving.loadResults()
+        results = results_manager.loadResults()
         total_sims = len(results)
         wins = sum(1 for result in results if result["escaped"])
 
@@ -17,7 +18,7 @@ class plots_stats:
         print(f"\nWin percentage: {winStr}%")
 
     def printAvgBoxChecks():
-        results = saving.loadResults()
+        results = results_manager.loadResults()
         total_sims = len(results)
         num_prisoners = len(results[0]["prisoners"])
         checksPerPrisoner = {i: 0 for i in range(num_prisoners)}
@@ -38,7 +39,7 @@ class plots_stats:
         plt.show()
 
     def printPctFinds():
-        results = saving.loadResults()
+        results = results_manager.loadResults()
         total_sims = len(results)
         num_prisoners = len(results[0]["prisoners"])
         findsPerPrisoner = {i: 0 for i in range(num_prisoners)}
@@ -85,7 +86,7 @@ class plots_stats:
             else:
                 print("Invalid choice. Please select a valid option.")
 
-class saving:
+class results_manager:
     def save(results, checkpoint):
         with open(resultsPath + '.tmp', 'wb') as file:
             pickle.dump(results, file)
@@ -122,59 +123,82 @@ class saving:
                 checkpoint = pickle.load(file)
             return checkpoint
         return None
+    
+    def createNewSimulation():
+        global working_dir
+        global resultsPath
+        global checkpointPath
+        global configPath
+        global prisonerStrategy
+        global config
+        while True:
+            simID = input("Enter new simulation ID: ").strip()
+            working_dir = os.path.join(base_dir, "results", simID)
+            resultsPath = os.path.join(working_dir, "results.pkl")
+            checkpointPath = os.path.join(working_dir, "checkpoint.pkl")
+            configPath = os.path.join(working_dir, "config.pkl")
+            if not os.path.exists(working_dir):
+                os.makedirs(working_dir)
+                break
+            print("Simulation ID already exists. Please choose a different ID.")
+        import config as baseConfig
+        prisonerStrategy = baseConfig.prisonerStrategy
+        prisonerStrategy_string = inspect.getsource(baseConfig.prisonerStrategy)
+        config = {"CONFIG": baseConfig.getConfig(), "prisonerStrategy": prisonerStrategy_string}
+        with open(configPath, 'wb') as file:
+            pickle.dump(config, file)
 
-def importConfigModule():
-    configPath = os.path.join(working_dir, "config.py")
-    spec = importlib.util.spec_from_file_location("config", configPath)
-    if spec is None or spec.loader is None:
-        raise FileNotFoundError(f"Could not load config.py from {working_dir}")
-    config = importlib.util.module_from_spec(spec)
-    sys.modules["config"] = config
-    spec.loader.exec_module(config)
-    return config
-
-def getWorkingDir():
-    global working_dir
-    global resultsPath
-    global checkpointPath
-    while True:
-        working_dir = os.path.abspath(input("Enter the working directory: ").strip())
-        if os.path.isdir(working_dir):
-            resultsPath = os.path.join(working_dir, 'results.pkl')
-            checkpointPath = os.path.join(working_dir, 'checkpoint.pkl')
-            return working_dir
-        else:
-            print(f"Directory {working_dir} does not exist. Please try again.")
+    def loadSimulation():
+        global working_dir
+        global resultsPath
+        global checkpointPath
+        global configPath
+        global prisonerStrategy
+        global config
+        while True:
+            simID = input("Enter simulation ID: ").strip()
+            working_dir = os.path.join(base_dir, "results", simID)
+            resultsPath = os.path.join(working_dir, "results.pkl")
+            checkpointPath = os.path.join(working_dir, "checkpoint.pkl")
+            configPath = os.path.join(working_dir, "config.pkl")
+            if os.path.exists(configPath):
+                break
+            print("Invalid simulation ID. Please try again.")
+        with open(configPath, 'rb') as file:
+            config = pickle.load(file)
+        namespace = {}
+        exec(config["prisonerStrategy"], namespace)
+        prisonerStrategy = namespace["prisonerStrategy"]
 
 def simulatePrisoners():
-    results = saving.loadResults()
-    checkpoint = saving.loadCheckpoint()
+    results = results_manager.loadResults()
+    checkpoint = results_manager.loadCheckpoint()
     if checkpoint and results:
         startSim = checkpoint.get("last_simulation") + 1
-        rng = random.Random(cfg.get("seed", None))
+        rng = random.Random(config["CONFIG"].get("seed", None))
         rng.setstate(checkpoint.get("rng_state"))
         print(f"Resuming from simulation {startSim}.")
     else:
         startSim = 0
         results = []
-        rng = random.Random(cfg.get("seed", None))
+        rng = random.Random(config["CONFIG"].get("seed", None))
         checkpoint = {"last_simulation": -1, "rng_state": rng.getstate()}
         print("Starting new simulations.")
 
-    if startSim >= cfg["num_simulations"]:
+    if startSim >= config["CONFIG"]["num_simulations"]:
         print("All simulations have already been completed.")
         return
     
-    for sim in range(startSim, cfg["num_simulations"]):
-        prisoners = {i: [0, False] for i in range(cfg["num_prisoners"])}
+    for sim in range(startSim, config["CONFIG"]["num_simulations"]):
+        prisoners = {i: [0, False] for i in range(config["CONFIG"]["num_prisoners"])}
         boxes = list(prisoners.keys())
         rng.shuffle(boxes)
         results.append({"escaped": None, "prisoners": []})
 
         for prisonerId in prisoners:
             checkedBoxes = {}
-            for _ in range(cfg["total_box_checks"]):
-                choice = config.prisonerStrategy(rng, prisonerId, prisoners, cfg["total_box_checks"], checkedBoxes)
+            for _ in range(config["CONFIG"]["total_box_checks"]):
+                choice = prisonerStrategy(rng, prisonerId, prisoners, config["CONFIG"]["total_box_checks"], checkedBoxes)
                 if boxes[choice] == prisonerId:
                     checkedBoxes[choice] = boxes[choice]
                     prisoners[prisonerId] = (checkedBoxes, True)
@@ -187,31 +211,35 @@ def simulatePrisoners():
         for prisoner in prisoners:
             results[-1]["prisoners"].append({"found": prisoners[prisoner][1], "checked_boxes": prisoners[prisoner][0]})
 
-        saving.save(results, {"last_simulation": sim, "rng_state": rng.getstate()})
+    results_manager.save(results, {"last_simulation": sim, "rng_state": rng.getstate()})
     print("All simulations completed.")
 
 if __name__ == "__main__":
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    working_dir = getWorkingDir()
-    config = importConfigModule()
-    cfg = config.getConfig()
-
     while True:
-        print(f"\nWorking directory: {working_dir}")
         print(f"\nChoose an option:")
-        print(f"1. Change working directory")
-        print(f"2. Run simulations")
-        print(f"3. Plot results")
-        print(f"4. Exit")
-        choice = input("Make a selection (1-4): ").strip()
+        print(f"1. Create new simulation")
+        print(f"2. Load simulation")
+        print(f"3. Simulate prisoners (load or create simulation first)")
+        print(f"4. Show plots and statistics (load or create simulation first)")
+        print(f"5. Exit")
+        choice = input("Make a selection (1-5): ").strip()
         if choice == '1':
-            getWorkingDir()
+            results_manager.createNewSimulation()
         elif choice == '2':
-            simulatePrisoners()
+            results_manager.loadSimulation()
         elif choice == '3':
-            plots_stats.run()
+            if config is None:
+                print("\nPlease create or load a simulation first.")
+            else:
+                simulatePrisoners()
         elif choice == '4':
+            if config is None:
+                print("\nPlease create or load a simulation first.")
+            else:
+                plots_stats.run()
+        elif choice == '5':
             print("Exiting.")
-            break
+            sys.exit(0)
         else:
             print("Invalid choice. Please select a valid option.")

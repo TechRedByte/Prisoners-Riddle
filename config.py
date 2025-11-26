@@ -1,6 +1,5 @@
 '''
-This is a sample configuration file. You can modify the parameters and strategy as needed.
-Copy this file as config.py to each of your working directories.
+This is where you can set configuration options and the strategy for the prisoners.
 '''
 
 CONFIG = { # Settings for the simulation
