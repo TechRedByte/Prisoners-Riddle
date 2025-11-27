@@ -177,6 +177,9 @@ def simulatePrisoners():
         startSim = checkpoint.get("last_simulation") + 1
         rng = random.Random(config["CONFIG"].get("seed", None))
         rng.setstate(checkpoint.get("rng_state"))
+        if startSim >= config["CONFIG"]["num_simulations"]:
+            print("All simulations have already been completed.")
+            return
         print(f"Resuming from simulation {startSim}.")
     else:
         startSim = 0
@@ -185,9 +188,6 @@ def simulatePrisoners():
         checkpoint = {"last_simulation": -1, "rng_state": rng.getstate()}
         print("Starting new simulations.")
 
-    if startSim >= config["CONFIG"]["num_simulations"]:
-        print("All simulations have already been completed.")
-        return
     
     for sim in range(startSim, config["CONFIG"]["num_simulations"]):
         prisoners = {i: [0, False] for i in range(config["CONFIG"]["num_prisoners"])}
@@ -216,6 +216,7 @@ def simulatePrisoners():
 
 if __name__ == "__main__":
     base_dir = os.path.dirname(os.path.abspath(__file__))
+    config = None
     while True:
         print(f"\nChoose an option:")
         print(f"1. Create new simulation")
