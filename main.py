@@ -1,15 +1,139 @@
-import importlib.util
+import platform
 import sys
 import random
 import inspect
 import os
 import pickle
 import time
+from datetime import datetime
 from matplotlib import pyplot as plt
 
-class plots_stats:
+# Terminal Control Constants
+class TermCtrl:
+    RESET = "\033[0m"
+    BOLD = "\033[1m"
+    DIM = "\033[2m"
+    ITALIC = "\033[3m"
+    UNDERLINE = "\033[4m"
+    
+    # Foreground Colors
+    BLACK = "\033[30m"
+    RED = "\033[31m"
+    GREEN = "\033[32m"
+    YELLOW = "\033[33m"
+    BLUE = "\033[34m"
+    MAGENTA = "\033[35m"
+    CYAN = "\033[36m"
+    WHITE = "\033[37m"
+    
+    # Bright Foreground Colors
+    BRIGHT_BLACK = "\033[90m"
+    BRIGHT_RED = "\033[91m"
+    BRIGHT_GREEN = "\033[92m"
+    BRIGHT_YELLOW = "\033[93m"
+    BRIGHT_BLUE = "\033[94m"
+    BRIGHT_MAGENTA = "\033[95m"
+    BRIGHT_CYAN = "\033[96m"
+    BRIGHT_WHITE = "\033[97m"
+    
+    # Background Colors
+    BG_BLACK = "\033[40m"
+    BG_RED = "\033[41m"
+    BG_GREEN = "\033[42m"
+    BG_YELLOW = "\033[43m"
+    BG_BLUE = "\033[44m"
+    BG_MAGENTA = "\033[45m"
+    BG_CYAN = "\033[46m"
+    BG_WHITE = "\033[47m"
+    
+    # Clear Screen
+    CLEAR = "\033[2J\033[H"
+
+
+def formatTimeSeconds(seconds):
+    try:
+        secs = float(seconds)
+    except Exception:
+        return str(seconds)
+    s = int(secs)
+    hh = s // 3600
+    mm = (s % 3600) // 60
+    ss = s % 60
+    return f"{hh:02d}:{mm:02d}:{ss:02d}"
+
+
+def formatTimestamp(ts):
+    try:
+        return datetime.fromtimestamp(float(ts)).strftime("%Y-%m-%d %H:%M:%S")
+    except Exception:
+        return str(ts)
+
+class Menu_Manager:
+    def __init__(self):
+        self.title = "Prisoners Riddle Simulator"
+        self.message = ""
+
+    def printHeader(self, lines, collums):
+        headerStr = f"{TermCtrl.RESET}{TermCtrl.BOLD}{TermCtrl.UNDERLINE}{self.title}{TermCtrl.RESET}" + "\n"*(lines - 1)
+        if lines > 0:
+            print(headerStr)
+
+    def printBody(self, lines, collums, task):
+        logLines = max(0, int(lines // 2))
+        secondBodyLines = max(0, lines - logLines)
+        if self.message != "":
+            logLines -= 1
+
+        # Print log entries
+        print("Log:")
+        last_logs = log[-logLines:]
+        for entry in last_logs:
+            print(entry)
+        extraLines = max(0,  logLines - len(last_logs))
+        if extraLines:
+            print("\n" * extraLines, end='')
+
+        # Print message if exists
+        if self.message != "":
+            print(f"{TermCtrl.BRIGHT_YELLOW}* {self.message}{TermCtrl.RESET}")
+            self.message = ""
+
+        # Print second part of body
+        if task["type"] == "options":
+            optionsLines = max(0, secondBodyLines - 1)
+            print("Menu Options:")
+            for option in [{"key": key, "desc": desc} for key, desc in task["options"].items()]:
+                print(f"{option['key']}. {option['desc']}")
+            try:
+                choice = int(input("Enter your choice: ").strip())
+            except ValueError:
+                self.message = "Invalid choice: input was not an integer"
+                return self.renderMenu(task)
+            if choice in task["options"]:
+                return choice
+            else:
+                self.message = f"Invalid choice: {choice}"
+                return self.renderMenu(task)
+
+        elif task["type"] == "progress":
+            progressLines = max(0, secondBodyLines)
+            remainingTime = (task["elapsed_time"] / task["current"]) * (task["total"] - task["current"])
+            print(f"Start Time: {formatTimestamp(task['start_time'])}")
+            print(f"Current Simulation: {task['current']} / {task['total']}")
+            print(f"Elapsed Time: {formatTimeSeconds(task['elapsed_time'])}")
+            print(f"Estimated Remaining Time: {formatTimeSeconds(remainingTime)}")
+
+    def renderMenu(self, task):
+        collums, lines = os.get_terminal_size()
+        headerHeight = 1
+        bodyHeight = lines - headerHeight
+        os.system('cls')
+        self.printHeader(headerHeight, collums)
+        return self.printBody(bodyHeight, collums, task)
+
+class Plots_Stats:
     def printWinPercentage():
-        results = results_manager.loadResults()
+        results = Results_Manager.loadResults()
         total_sims = len(results)
         wins = sum(1 for result in results if result["escaped"])
 
@@ -18,7 +142,7 @@ class plots_stats:
         print(f"\nWin percentage: {winStr}%")
 
     def printAvgBoxChecks():
-        results = results_manager.loadResults()
+        results = Results_Manager.loadResults()
         total_sims = len(results)
         num_prisoners = len(results[0]["prisoners"])
         checksPerPrisoner = {i: 0 for i in range(num_prisoners)}
@@ -39,7 +163,7 @@ class plots_stats:
         plt.show()
 
     def printPctFinds():
-        results = results_manager.loadResults()
+        results = Results_Manager.loadResults()
         total_sims = len(results)
         num_prisoners = len(results[0]["prisoners"])
         findsPerPrisoner = {i: 0 for i in range(num_prisoners)}
@@ -75,18 +199,18 @@ class plots_stats:
             print("4. Return to main menu")
             choice = input("Enter your choice: ").strip()
             if choice == '1':
-                plots_stats.printWinPercentage()
+                Plots_Stats.printWinPercentage()
             elif choice == '2':
-                plots_stats.printAvgBoxChecks()
+                Plots_Stats.printAvgBoxChecks()
             elif choice == '3':
-                plots_stats.printPctFinds()
+                Plots_Stats.printPctFinds()
             elif choice == '4':
                 print("Exiting.")
                 return
             else:
                 print("Invalid choice. Please select a valid option.")
 
-class results_manager:
+class Results_Manager:
     def save(results, checkpoint):
         with open(resultsPath + '.tmp', 'wb') as file:
             pickle.dump(results, file)
@@ -171,24 +295,26 @@ class results_manager:
         prisonerStrategy = namespace["prisonerStrategy"]
 
 def simulatePrisoners():
-    results = results_manager.loadResults()
-    checkpoint = results_manager.loadCheckpoint()
+    results = Results_Manager.loadResults()
+    checkpoint = Results_Manager.loadCheckpoint()
+    currentTime = time.time()
+    startTime = currentTime
+    lastPrintTime = currentTime
     if checkpoint and results:
         startSim = checkpoint.get("last_simulation") + 1
         rng = random.Random(config["CONFIG"].get("seed", None))
         rng.setstate(checkpoint.get("rng_state"))
         if startSim >= config["CONFIG"]["num_simulations"]:
-            print("All simulations have already been completed.")
+            menu.message = "All simulations already completed."
             return
-        print(f"Resuming from simulation {startSim}.")
+        menu.message = f"Resuming from simulation {startSim}."
     else:
         startSim = 0
         results = []
         rng = random.Random(config["CONFIG"].get("seed", None))
         checkpoint = {"last_simulation": -1, "rng_state": rng.getstate()}
-        print("Starting new simulations.")
+        menu.message = "Starting new simulations."
 
-    
     for sim in range(startSim, config["CONFIG"]["num_simulations"]):
         prisoners = {i: [0, False] for i in range(config["CONFIG"]["num_prisoners"])}
         boxes = list(prisoners.keys())
@@ -210,37 +336,55 @@ def simulatePrisoners():
         results[-1]["escaped"] = all(prisoners[prisoner][1] for prisoner in prisoners)
         for prisoner in prisoners:
             results[-1]["prisoners"].append({"found": prisoners[prisoner][1], "checked_boxes": prisoners[prisoner][0]})
+        
+        # Print progress
+        currentTime = time.time()
+        if currentTime - lastPrintTime >= 1 or sim == config["CONFIG"]["num_simulations"] - 1:
+            lastPrintTime = currentTime
+            elapsedTime = currentTime - startTime
+            task = {"type": "progress", "current": sim + 1, "total": config["CONFIG"]["num_simulations"], "start_time": startTime, "elapsed_time": elapsedTime}
+            menu.renderMenu(task)
 
-    results_manager.save(results, {"last_simulation": sim, "rng_state": rng.getstate()})
+    Results_Manager.save(results, {"last_simulation": sim, "rng_state": rng.getstate()})
     print("All simulations completed.")
 
-if __name__ == "__main__":
+def detectSystem():
+    system = platform.system().lower()
+    
+    if system == 'windows':
+        return "windows"
+    elif system == 'linux':
+        if os.path.exists("/data/data/com.termux"):
+            return "android"
+        return "linux"
+    elif system == 'darwin':
+        return "macos"
+    else:
+        return "unknown"
+
+def main():
+    global system
+    global base_dir
+    global log
+    global menu
+    log = []
+    log.append("Initializing...")
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    config = None
+    system = detectSystem()
+    menu = Menu_Manager()
     while True:
-        print(f"\nChoose an option:")
-        print(f"1. Create new simulation")
-        print(f"2. Load simulation")
-        print(f"3. Simulate prisoners (load or create simulation first)")
-        print(f"4. Show plots and statistics (load or create simulation first)")
-        print(f"5. Exit")
-        choice = input("Make a selection (1-5): ").strip()
-        if choice == '1':
-            results_manager.createNewSimulation()
-        elif choice == '2':
-            results_manager.loadSimulation()
-        elif choice == '3':
-            if config is None:
-                print("\nPlease create or load a simulation first.")
-            else:
-                simulatePrisoners()
-        elif choice == '4':
-            if config is None:
-                print("\nPlease create or load a simulation first.")
-            else:
-                plots_stats.run()
-        elif choice == '5':
-            print("Exiting.")
+        task = {"type": "options", "options": {1: "Create New Simulation", 2: "Load Existing Simulation", 3: "Run Simulations", 4: "View Plots/Stats", 5: "Exit"}}
+        choice = menu.renderMenu(task)
+        if choice == 1:
+            Results_Manager.createNewSimulation()
+        elif choice == 2:
+            Results_Manager.loadSimulation()
+        elif choice == 3:
+            simulatePrisoners()
+        elif choice == 4:
+            Plots_Stats.run()
+        elif choice == 5:
             sys.exit(0)
-        else:
-            print("Invalid choice. Please select a valid option.")
+
+if __name__ == "__main__":
+    main()
