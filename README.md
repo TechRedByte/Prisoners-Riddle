@@ -55,3 +55,4 @@ See LICENSE.md for details.
 ## 🧩 Future Ideas
 - Better GUI
 - Parallelized simulations for faster results
+- More accurate statistics
