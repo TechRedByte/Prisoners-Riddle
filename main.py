@@ -49,24 +49,37 @@ class TermCtrl:
     # Clear Screen
     CLEAR = "\033[2J\033[H"
 
+class utils:
+    def formatTimeSeconds(seconds):
+        try:
+            secs = float(seconds)
+        except Exception:
+            return str(seconds)
+        s = int(secs)
+        hh = s // 3600
+        mm = (s % 3600) // 60
+        ss = s % 60
+        return f"{hh:02d}:{mm:02d}:{ss:02d}"
 
-def formatTimeSeconds(seconds):
-    try:
-        secs = float(seconds)
-    except Exception:
-        return str(seconds)
-    s = int(secs)
-    hh = s // 3600
-    mm = (s % 3600) // 60
-    ss = s % 60
-    return f"{hh:02d}:{mm:02d}:{ss:02d}"
-
-
-def formatTimestamp(ts):
-    try:
-        return datetime.fromtimestamp(float(ts)).strftime("%Y-%m-%d %H:%M:%S")
-    except Exception:
-        return str(ts)
+    def formatTimestamp(ts):
+        try:
+            return datetime.fromtimestamp(float(ts)).strftime("%Y-%m-%d %H:%M:%S")
+        except Exception:
+            return str(ts)
+        
+    def detectSystem():
+        system = platform.system().lower()
+        
+        if system == 'windows':
+            return "windows"
+        elif system == 'linux':
+            if os.path.exists("/data/data/com.termux"):
+                return "android"
+            return "linux"
+        elif system == 'darwin':
+            return "macos"
+        else:
+            return "unknown"
 
 class Menu_Manager:
     def __init__(self):
@@ -118,10 +131,10 @@ class Menu_Manager:
         elif task["type"] == "progress":
             progressLines = max(0, secondBodyLines)
             remainingTime = (task["elapsed_time"] / task["current"]) * (task["total"] - task["current"])
-            print(f"Start Time: {formatTimestamp(task['start_time'])}")
+            print(f"Start Time: {utils.formatTimestamp(task['start_time'])}")
             print(f"Current Simulation: {task['current']} / {task['total']}")
-            print(f"Elapsed Time: {formatTimeSeconds(task['elapsed_time'])}")
-            print(f"Estimated Remaining Time: {formatTimeSeconds(remainingTime)}")
+            print(f"Elapsed Time: {utils.formatTimeSeconds(task['elapsed_time'])}")
+            print(f"Estimated Remaining Time: {utils.formatTimeSeconds(remainingTime)}")
 
     def renderMenu(self, task):
         collums, lines = os.get_terminal_size()
@@ -342,20 +355,6 @@ def simulatePrisoners():
     Results_Manager.save(results, {"last_simulation": sim, "rng_state": rng.getstate()})
     print("All simulations completed.")
 
-def detectSystem():
-    system = platform.system().lower()
-    
-    if system == 'windows':
-        return "windows"
-    elif system == 'linux':
-        if os.path.exists("/data/data/com.termux"):
-            return "android"
-        return "linux"
-    elif system == 'darwin':
-        return "macos"
-    else:
-        return "unknown"
-
 def main():
     global system
     global base_dir
@@ -378,7 +377,7 @@ def main():
     log = []
     log.append("Initializing...")
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    system = detectSystem()
+    system = utils.detectSystem()
     menu = Menu_Manager()
     while True:
         task = {"type": "options", "options": {1: "Create New Simulation", 2: "Load Existing Simulation", 3: "Run Simulations", 4: "View Plots/Stats", 5: "Exit"}}
