@@ -139,7 +139,7 @@ class Plots_Stats:
 
         winPercentage = (wins / total_sims) * 100
         winStr = f"{winPercentage:.10f}".rstrip('0').rstrip('.')
-        print(f"\nWin percentage: {winStr}%")
+        menu.message = f"Win percentage: {winStr}%"
 
     def printAvgBoxChecks():
         results = Results_Manager.loadResults()
@@ -186,29 +186,23 @@ class Plots_Stats:
         plt.show()
 
     def run():
-        if not os.path.exists(resultsPath):
-            print("No results found. Please run simulations first.")
+        if resultsPath is None or not os.path.exists(resultsPath):
+            menu.message = "No results found. Please run simulations first."
             return
         
         while True:
-            print(f"\nWorking directory: {working_dir}")
-            print("\nChoose an option:")
-            print("1. Show win percentage")
-            print("2. Show average number of checked boxes per prisoner")
-            print("3. Show percentage of finds per prisoner")
-            print("4. Return to main menu")
-            choice = input("Enter your choice: ").strip()
-            if choice == '1':
+            task = {"type": "options", "options": {1: "Show win percentage", 2: "Show average number of checked boxes per prisoner", 3: "Show percentage of finds per prisoner", 4: "Return to main menu"}}
+            choice = menu.renderMenu(task)
+            if choice == 1:
                 Plots_Stats.printWinPercentage()
-            elif choice == '2':
+            elif choice == 2:
                 Plots_Stats.printAvgBoxChecks()
-            elif choice == '3':
+            elif choice == 3:
                 Plots_Stats.printPctFinds()
-            elif choice == '4':
-                print("Exiting.")
+            elif choice == 4:
                 return
             else:
-                print("Invalid choice. Please select a valid option.")
+                menu.message = "Invalid choice. Please select a valid option."
 
 class Results_Manager:
     def save(results, checkpoint):
@@ -367,6 +361,20 @@ def main():
     global base_dir
     global log
     global menu
+
+    global working_dir
+    global resultsPath
+    global checkpointPath
+    global configPath
+    global prisonerStrategy
+    global config
+    working_dir = None
+    resultsPath = None
+    checkpointPath = None
+    configPath = None
+    prisonerStrategy = None
+    config = None
+
     log = []
     log.append("Initializing...")
     base_dir = os.path.dirname(os.path.abspath(__file__))
