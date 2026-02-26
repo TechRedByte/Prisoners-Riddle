@@ -45,9 +45,6 @@ class TermCtrl:
     BG_MAGENTA = "\033[45m"
     BG_CYAN = "\033[46m"
     BG_WHITE = "\033[47m"
-    
-    # Clear Screen
-    CLEAR = "\033[2J\033[H"
 
 class utils:
     def formatTimeSeconds(seconds):
@@ -111,9 +108,15 @@ class Menu_Manager:
             print(f"{TermCtrl.BRIGHT_YELLOW}* {self.message}{TermCtrl.RESET}")
             self.message = ""
 
+        simName = os.path.basename(working_dir) if working_dir else "N/A"
+        print(f"Current Simulation: {simName}\n")
+
         # Print second part of body
         if task["type"] == "options":
-            optionsLines = max(0, secondBodyLines - 1)
+            if "information" in task:
+                for key, value in task["information"].items():
+                    print(f"{key}: {value}\n")
+
             print("Menu Options:")
             for option in [{"key": key, "desc": desc} for key, desc in task["options"].items()]:
                 print(f"{option['key']}. {option['desc']}")
@@ -145,14 +148,14 @@ class Menu_Manager:
         return self.printBody(bodyHeight, collums, task)
 
 class Plots_Stats:
-    def printWinPercentage():
+    def winPercentage():
         results = Results_Manager.loadResults()
         total_sims = len(results)
         wins = sum(1 for result in results if result["escaped"])
 
         winPercentage = (wins / total_sims) * 100
         winStr = f"{winPercentage:.10f}".rstrip('0').rstrip('.')
-        menu.message = f"Win percentage: {winStr}%"
+        return winStr
 
     def printAvgBoxChecks():
         results = Results_Manager.loadResults()
@@ -204,15 +207,13 @@ class Plots_Stats:
             return
         
         while True:
-            task = {"type": "options", "options": {1: "Show win percentage", 2: "Show average number of checked boxes per prisoner", 3: "Show percentage of finds per prisoner", 4: "Return to main menu"}}
+            task = {"type": "options", "information": {"Win Percentage": Plots_Stats.winPercentage()} , "options": {1: "Show average number of checked boxes per prisoner", 2: "Show percentage of finds per prisoner", 3: "Return to main menu"}}
             choice = menu.renderMenu(task)
             if choice == 1:
-                Plots_Stats.printWinPercentage()
-            elif choice == 2:
                 Plots_Stats.printAvgBoxChecks()
-            elif choice == 3:
+            elif choice == 2:
                 Plots_Stats.printPctFinds()
-            elif choice == 4:
+            elif choice == 3:
                 return
             else:
                 menu.message = "Invalid choice. Please select a valid option."
@@ -320,7 +321,6 @@ def simulatePrisoners():
         results = []
         rng = random.Random(config["CONFIG"].get("seed", None))
         checkpoint = {"last_simulation": -1, "rng_state": rng.getstate()}
-        menu.message = "Starting new simulations."
 
     for sim in range(startSim, config["CONFIG"]["num_simulations"]):
         prisoners = {i: [0, False] for i in range(config["CONFIG"]["num_prisoners"])}
