@@ -1,4 +1,3 @@
-import platform
 import sys
 import random
 import inspect
@@ -63,20 +62,6 @@ class utils:
             return datetime.fromtimestamp(float(ts)).strftime("%Y-%m-%d %H:%M:%S")
         except Exception:
             return str(ts)
-        
-    def detectSystem():
-        system = platform.system().lower()
-        
-        if system == 'windows':
-            return "windows"
-        elif system == 'linux':
-            if os.path.exists("/data/data/com.termux"):
-                return "android"
-            return "linux"
-        elif system == 'darwin':
-            return "macos"
-        else:
-            return "unknown"
 
 class Menu_Manager:
     def __init__(self):
@@ -84,32 +69,42 @@ class Menu_Manager:
         self.message = ""
 
     def printHeader(self, lines, collums):
-        headerStr = f"{TermCtrl.RESET}{TermCtrl.BOLD}{TermCtrl.UNDERLINE}{self.title}{TermCtrl.RESET}" + "\n"*(lines - 1)
+        headerStr = f"{TermCtrl.RESET}{TermCtrl.BOLD}{TermCtrl.UNDERLINE}{self.title.center(collums)}{TermCtrl.RESET}" + "\n"*(lines - 1)
         if lines > 0:
             print(headerStr)
 
     def printBody(self, lines, collums, task):
-        logLines = max(0, int(lines // 2))
+        logLines = max(0, (lines // 2 - 4))
         secondBodyLines = max(0, lines - logLines)
         if self.message != "":
-            logLines -= 1
+            logLines -= 3
 
         # Print log entries
-        print("Log:")
-        last_logs = log[-logLines:]
-        for entry in last_logs:
-            print(entry)
-        extraLines = max(0,  logLines - len(last_logs))
-        if extraLines:
-            print("\n" * extraLines, end='')
+        if logLines >= 3:
+            print(f"{TermCtrl.RESET}{TermCtrl.BOLD}Log:{TermCtrl.RESET}")
+            last_logs = log[-logLines:]
+            for entry in last_logs:
+                print(entry)
+            extraLines = max(0, logLines - len(last_logs))
+            if extraLines:
+                print("\n" * extraLines, end='')
+            print(f"{TermCtrl.RESET}{TermCtrl.BOLD}{TermCtrl.UNDERLINE} {TermCtrl.RESET}" * collums)
 
         # Print message if exists
         if self.message != "":
-            print(f"{TermCtrl.BRIGHT_YELLOW}* {self.message}{TermCtrl.RESET}")
+            print(f"\n{TermCtrl.BRIGHT_YELLOW}* {self.message}{TermCtrl.RESET}\n")
             self.message = ""
 
-        simName = os.path.basename(working_dir) if working_dir else "N/A"
-        print(f"Current Simulation: {simName}\n")
+        simName = os.path.basename(working_dir) if working_dir else None
+        if simName is None:
+            simStatus = f"N/A"
+        elif results is None:
+            simStatus = f"{TermCtrl.BRIGHT_RED}No simulations run yet{TermCtrl.RESET}"
+        elif (len(results) - config["CONFIG"]["num_simulations"]) == 0:
+            simStatus = f"{TermCtrl.BRIGHT_GREEN}All simulations completed{TermCtrl.RESET}"
+        else:
+            simStatus = f"{TermCtrl.BRIGHT_YELLOW}Simulations in progress ({(len(results) / config['CONFIG']['num_simulations']) * 100:.2f}%){TermCtrl.RESET}"
+        print(f"Current Simulation: {simName} | Status: {simStatus}\n")
 
         # Print second part of body
         if task["type"] == "options":
@@ -117,13 +112,16 @@ class Menu_Manager:
                 for key, value in task["information"].items():
                     print(f"{key}: {value}\n")
 
-            print("Menu Options:")
+            print(f"{TermCtrl.BOLD}{task['name']}:{TermCtrl.RESET}" if "name" in task else f"{TermCtrl.BOLD}Options:{TermCtrl.RESET}")
             for option in [{"key": key, "desc": desc} for key, desc in task["options"].items()]:
-                print(f"{option['key']}. {option['desc']}")
+                print(f" {option['key']}. {option['desc']}")
+            
+            choice = input("Enter your choice: ").strip()
+            
             try:
-                choice = int(input("Enter your choice: ").strip())
+                choice = int(choice)
             except ValueError:
-                self.message = "Invalid choice: input was not an integer"
+                self.message = f"Invalid input: {choice}"
                 return self.renderMenu(task)
             if choice in task["options"]:
                 return choice
@@ -131,13 +129,17 @@ class Menu_Manager:
                 self.message = f"Invalid choice: {choice}"
                 return self.renderMenu(task)
 
+        elif task["type"] == "input":
+            print(task['question'], end="")
+            return input().strip()
+        
         elif task["type"] == "progress":
             progressLines = max(0, secondBodyLines)
             remainingTime = (task["elapsed_time"] / task["current"]) * (task["total"] - task["current"])
             print(f"Start Time: {utils.formatTimestamp(task['start_time'])}")
             print(f"Current Simulation: {task['current']} / {task['total']}")
             print(f"Elapsed Time: {utils.formatTimeSeconds(task['elapsed_time'])}")
-            print(f"Estimated Remaining Time: {utils.formatTimeSeconds(remainingTime)}")
+            print(f"Remaining Time: {utils.formatTimeSeconds(remainingTime)}")
 
     def renderMenu(self, task):
         collums, lines = os.get_terminal_size()
@@ -149,7 +151,6 @@ class Menu_Manager:
 
 class Plots_Stats:
     def winPercentage():
-        results = Results_Manager.loadResults()
         total_sims = len(results)
         wins = sum(1 for result in results if result["escaped"])
 
@@ -158,7 +159,6 @@ class Plots_Stats:
         return winStr
 
     def printAvgBoxChecks():
-        results = Results_Manager.loadResults()
         total_sims = len(results)
         num_prisoners = len(results[0]["prisoners"])
         checksPerPrisoner = {i: 0 for i in range(num_prisoners)}
@@ -177,9 +177,9 @@ class Plots_Stats:
         plt.title("Average Checked Boxes per Prisoner")
         plt.legend(loc='lower left')
         plt.show()
+        log.append("Displayed average checked boxes per prisoner.")
 
     def printPctFinds():
-        results = Results_Manager.loadResults()
         total_sims = len(results)
         num_prisoners = len(results[0]["prisoners"])
         findsPerPrisoner = {i: 0 for i in range(num_prisoners)}
@@ -200,14 +200,11 @@ class Plots_Stats:
         plt.title("Percentage of Finds per Prisoner")
         plt.legend()
         plt.show()
+        log.append("Displayed percentage of finds per prisoner.")
 
     def run():
-        if resultsPath is None or not os.path.exists(resultsPath):
-            menu.message = "No results found. Please run simulations first."
-            return
-        
         while True:
-            task = {"type": "options", "information": {"Win Percentage": Plots_Stats.winPercentage()} , "options": {1: "Show average number of checked boxes per prisoner", 2: "Show percentage of finds per prisoner", 3: "Return to main menu"}}
+            task = {"type": "options", "name": "Plot Statistics", "information": {"Win Percentage": Plots_Stats.winPercentage()} , "options": {1: "Show average number of checked boxes per prisoner", 2: "Show percentage of finds per prisoner", 3: "Return to main menu"}}
             choice = menu.renderMenu(task)
             if choice == 1:
                 Plots_Stats.printAvgBoxChecks()
@@ -215,8 +212,6 @@ class Plots_Stats:
                 Plots_Stats.printPctFinds()
             elif choice == 3:
                 return
-            else:
-                menu.message = "Invalid choice. Please select a valid option."
 
 class Results_Manager:
     def save(results, checkpoint):
@@ -241,20 +236,6 @@ class Results_Manager:
                 time.sleep(0.01)
         else:
             raise PermissionError("Could not save checkpoint due to persistent PermissionError.")
-            
-    def loadResults():
-        if os.path.exists(resultsPath):
-            with open(resultsPath, 'rb') as file:
-                results = pickle.load(file)
-            return results
-        return None
-    
-    def loadCheckpoint():
-        if os.path.exists(checkpointPath):
-            with open(checkpointPath, 'rb') as file:
-                checkpoint = pickle.load(file)
-            return checkpoint
-        return None
     
     def createNewSimulation():
         global working_dir
@@ -263,22 +244,28 @@ class Results_Manager:
         global configPath
         global prisonerStrategy
         global config
+        global results
+        global checkpoint
         while True:
-            simID = input("Enter new simulation ID: ").strip()
-            working_dir = os.path.join(base_dir, "results", simID)
-            resultsPath = os.path.join(working_dir, "results.pkl")
-            checkpointPath = os.path.join(working_dir, "checkpoint.pkl")
-            configPath = os.path.join(working_dir, "config.pkl")
-            if not os.path.exists(working_dir):
-                os.makedirs(working_dir)
+            task = {"type": "input", "question": "Enter new simulation ID: "}
+            simID = menu.renderMenu(task)
+            if not os.path.exists(os.path.join(base_dir, "results", simID)):
                 break
-            print("Simulation ID already exists. Please choose a different ID.")
+            menu.message = (f"Simulation ID ({simID}) already exists. Please choose a different ID.")
+        working_dir = os.path.join(base_dir, "results", simID)
+        resultsPath = os.path.join(working_dir, "results.pkl")
+        checkpointPath = os.path.join(working_dir, "checkpoint.pkl")
+        configPath = os.path.join(working_dir, "config.pkl")
+        results = None
+        checkpoint = None
+        os.makedirs(working_dir)
         import config as baseConfig
         prisonerStrategy = baseConfig.prisonerStrategy
         prisonerStrategy_string = inspect.getsource(baseConfig.prisonerStrategy)
         config = {"CONFIG": baseConfig.getConfig(), "prisonerStrategy": prisonerStrategy_string}
         with open(configPath, 'wb') as file:
             pickle.dump(config, file)
+        log.append(f"Created new simulation with ID: {simID}")
 
     def loadSimulation():
         global working_dir
@@ -287,24 +274,45 @@ class Results_Manager:
         global configPath
         global prisonerStrategy
         global config
+        global results
+        global checkpoint
         while True:
-            simID = input("Enter simulation ID: ").strip()
-            working_dir = os.path.join(base_dir, "results", simID)
-            resultsPath = os.path.join(working_dir, "results.pkl")
-            checkpointPath = os.path.join(working_dir, "checkpoint.pkl")
-            configPath = os.path.join(working_dir, "config.pkl")
-            if os.path.exists(configPath):
+            task = {"type": "input", "question": "Enter simulation ID to load: "}
+            simID = menu.renderMenu(task)
+            if os.path.exists(os.path.join(base_dir, "results", simID)):
                 break
-            print("Invalid simulation ID. Please try again.")
+            menu.message = (f"Invalid simulation ID ({simID}). Please enter a valid ID.")
+        working_dir = os.path.join(base_dir, "results", simID)
+        resultsPath = os.path.join(working_dir, "results.pkl")
+        checkpointPath = os.path.join(working_dir, "checkpoint.pkl")
+        configPath = os.path.join(working_dir, "config.pkl")
         with open(configPath, 'rb') as file:
             config = pickle.load(file)
         namespace = {}
         exec(config["prisonerStrategy"], namespace)
         prisonerStrategy = namespace["prisonerStrategy"]
+        if os.path.exists(resultsPath):
+            with open(resultsPath, 'rb') as file:
+                results = pickle.load(file)
+        else:
+            results = None
+        if os.path.exists(checkpointPath):
+            with open(checkpointPath, 'rb') as file:
+                checkpoint = pickle.load(file)
+        else:
+            checkpoint = None
+        log.append(f"Loaded simulation with ID: {simID}")
 
 def simulatePrisoners():
-    results = Results_Manager.loadResults()
-    checkpoint = Results_Manager.loadCheckpoint()
+    global working_dir
+    global resultsPath
+    global checkpointPath
+    global configPath
+    global prisonerStrategy
+    global config
+    global results
+    global checkpoint
+    
     currentTime = time.time()
     startTime = currentTime
     lastPrintTime = currentTime
@@ -316,7 +324,9 @@ def simulatePrisoners():
             menu.message = "All simulations already completed."
             return
         menu.message = f"Resuming from simulation {startSim}."
+        log.append(f"Resuming simulation from checkpoint: Simulation {startSim}")
     else:
+        log.append("Starting new simulations.")
         startSim = 0
         results = []
         rng = random.Random(config["CONFIG"].get("seed", None))
@@ -353,10 +363,9 @@ def simulatePrisoners():
             menu.renderMenu(task)
 
     Results_Manager.save(results, {"last_simulation": sim, "rng_state": rng.getstate()})
-    print("All simulations completed.")
+    log.append(f"All simulations completed in {utils.formatTimeSeconds(elapsedTime)} seconds.")
 
 def main():
-    global system
     global base_dir
     global log
     global menu
@@ -367,31 +376,55 @@ def main():
     global configPath
     global prisonerStrategy
     global config
+    global results
+    global checkpoint
     working_dir = None
     resultsPath = None
     checkpointPath = None
     configPath = None
     prisonerStrategy = None
     config = None
+    results = None
+    checkpoint = None
 
     log = []
     log.append("Initializing...")
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    system = utils.detectSystem()
     menu = Menu_Manager()
     while True:
-        task = {"type": "options", "options": {1: "Create New Simulation", 2: "Load Existing Simulation", 3: "Run Simulations", 4: "View Plots/Stats", 5: "Exit"}}
-        choice = menu.renderMenu(task)
-        if choice == 1:
-            Results_Manager.createNewSimulation()
-        elif choice == 2:
-            Results_Manager.loadSimulation()
-        elif choice == 3:
-            simulatePrisoners()
-        elif choice == 4:
-            Plots_Stats.run()
-        elif choice == 5:
-            sys.exit(0)
+        if working_dir is None:
+            task = {"type": "options", "name": "Main Menu", "options": {1: "Create New Simulation", 2: "Load Existing Simulation", 3: "Exit"}}
+            choice = menu.renderMenu(task)
+            if choice == 1:
+                Results_Manager.createNewSimulation()
+            elif choice == 2:
+                Results_Manager.loadSimulation()
+            elif choice == 3:
+                sys.exit(0)
+            
+        elif results is None:
+            task = {"type": "options", "name": "Main Menu", "options": {1: "Create New Simulation", 2: "Load Existing Simulation", 3: "Run Simulations", 4: "Exit"}}
+            choice = menu.renderMenu(task)
+            if choice == 1:
+                Results_Manager.createNewSimulation()
+            elif choice == 2:
+                Results_Manager.loadSimulation()
+            elif choice == 3:
+                simulatePrisoners()
+            elif choice == 4:
+                sys.exit(0)
+
+        else:
+            task = {"type": "options", "name": "Main Menu", "options": {1: "Create New Simulation", 2: "Load Existing Simulation", 3: "View Plots/Stats", 4: "Exit"}}
+            choice = menu.renderMenu(task)
+            if choice == 1:
+                Results_Manager.createNewSimulation()
+            elif choice == 2:
+                Results_Manager.loadSimulation()
+            elif choice == 3:
+                Plots_Stats.run()
+            elif choice == 4:
+                sys.exit(0)
 
 if __name__ == "__main__":
     main()
