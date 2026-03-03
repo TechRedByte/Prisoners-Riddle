@@ -170,7 +170,7 @@ class Plots_Stats:
         wins = sum(1 for result in results if result["escaped"])
 
         winPercentage = (wins / total_sims) * 100
-        winStr = f"{winPercentage:.10f}".rstrip('0').rstrip('.')
+        winStr = f"{winPercentage:.10f}".rstrip('0').rstrip('.') + "%"
         return winStr
 
     def printAvgBoxChecks():
@@ -187,6 +187,7 @@ class Plots_Stats:
 
         plt.bar(avgChecksPerPrisoner.keys(), avgChecksPerPrisoner.values())
         plt.axhline(y=overallAvg, color='r', linestyle='-', label=f'Overall Average: {overallAvg:.2f}')
+        plt.ylim(0, config["CONFIG"]["total_box_checks"])
         plt.xlabel("Prisoner ID")
         plt.ylabel("Average Checked Boxes")
         plt.title("Average Checked Boxes per Prisoner")
@@ -433,7 +434,7 @@ def main():
                 sys.exit(0)
 
         else:
-            task = {"type": "options", "name": "Main Menu", "options": {1: "Create New Simulation", 2: "Load Existing Simulation", 3: "View Plots/Stats", 4: "Exit"}}
+            task = {"type": "options", "name": "Main Menu", "options": {1: "Create New Simulation", 2: "Load Existing Simulation", 3: "View Statistics", 4: "Exit"}}
             choice = menu.renderMenu(task)
             if choice == 1:
                 Results_Manager.createNewSimulation()
