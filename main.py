@@ -332,6 +332,7 @@ def simulatePrisoners():
     currentTime = time.time()
     startTime = currentTime
     lastPrintTime = currentTime
+    lastSaveTime = currentTime
     if checkpoint and results:
         startSim = checkpoint.get("last_simulation") + 1
         rng = random.Random(config["CONFIG"].get("seed", None))
@@ -370,13 +371,18 @@ def simulatePrisoners():
         for prisoner in prisoners:
             results[-1]["prisoners"].append({"found": prisoners[prisoner][1], "checked_boxes": prisoners[prisoner][0]})
         
-        # Print progress
         currentTime = time.time()
-        if currentTime - lastPrintTime >= 1 or sim == config["CONFIG"]["num_simulations"] - 1:
+        # Print progress
+        if currentTime - lastPrintTime >= 2 or sim == config["CONFIG"]["num_simulations"] - 1:
             lastPrintTime = currentTime
             elapsedTime = currentTime - startTime
             task = {"type": "progress", "current": sim + 1, "total": config["CONFIG"]["num_simulations"], "start_time": startTime, "elapsed_time": elapsedTime}
             menu.renderMenu(task)
+
+        # Periodically save results and checkpoint
+        if currentTime - lastSaveTime >= 600:
+            lastSaveTime = currentTime
+            Results_Manager.save(results, {"last_simulation": sim, "rng_state": rng.getstate()})
 
     Results_Manager.save(results, {"last_simulation": sim, "rng_state": rng.getstate()})
     log.append(f"All simulations completed in {utils.formatTimeSeconds(elapsedTime)} seconds.")
