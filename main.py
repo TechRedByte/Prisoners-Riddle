@@ -4,6 +4,7 @@ import inspect
 import os
 import pickle
 import time
+import platform
 from datetime import datetime
 from matplotlib import pyplot as plt
 
@@ -62,6 +63,20 @@ class utils:
             return datetime.fromtimestamp(float(ts)).strftime("%Y-%m-%d %H:%M:%S")
         except Exception:
             return str(ts)
+        
+    def detect_platform():
+        system = platform.system().lower()
+        
+        if system == 'windows':
+            return "windows"
+        elif system == 'linux':
+            if os.path.exists("/data/data/com.termux"):
+                return "android"
+            return "linux"
+        elif system == 'darwin':
+            return "macos"
+        else:
+            return "unknown"
 
 class Menu_Manager:
     def __init__(self):
@@ -145,7 +160,7 @@ class Menu_Manager:
         collums, lines = os.get_terminal_size()
         headerHeight = 1
         bodyHeight = lines - headerHeight
-        os.system('cls')
+        os.system('clear' if platform != 'windows' else 'cls')
         self.printHeader(headerHeight, collums)
         return self.printBody(bodyHeight, collums, task)
 
@@ -369,6 +384,7 @@ def main():
     global base_dir
     global log
     global menu
+    global platform
 
     global working_dir
     global resultsPath
@@ -391,6 +407,8 @@ def main():
     log.append("Initializing...")
     base_dir = os.path.dirname(os.path.abspath(__file__))
     menu = Menu_Manager()
+    platform = utils.detect_platform()
+    log.append(f"Detected platform: {platform}")
     while True:
         if working_dir is None:
             task = {"type": "options", "name": "Main Menu", "options": {1: "Create New Simulation", 2: "Load Existing Simulation", 3: "Exit"}}
