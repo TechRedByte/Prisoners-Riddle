@@ -152,7 +152,7 @@ class Menu_Manager:
             progressLines = max(0, secondBodyLines)
             remainingTime = (task["elapsed_time"] / task["current"]) * (task["total"] - task["current"])
             print(f"Start Time: {utils.formatTimestamp(task['start_time'])}")
-            print(f"Current Simulation: {task['current']} / {task['total']}")
+            print(f"Current Simulation Step: {task['current']} / {task['total']}")
             print(f"Elapsed Time: {utils.formatTimeSeconds(task['elapsed_time'])}")
             print(f"Remaining Time: {utils.formatTimeSeconds(remainingTime)}")
 

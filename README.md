@@ -37,8 +37,12 @@ https://youtu.be/iSNsgj1OCLA?si=Bgq4OAlChz_tSI_g
 ## ⚙️ Usage
 1. Download the [latest release](https://github.com/TechRedByte/Prisoners-Riddle/releases/latest)
 2. Unzip the downloaded .zip file
-3. Customize the simulation settings and the strategy in config.py
-4. Run the main Python file:
+3. Install the required dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Customize the simulation settings and the strategy in config.py
+5. Run the main Python file:
    ```bash
    python main.py
    ```
