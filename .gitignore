@@ -2,5 +2,4 @@
 __pycache__
 *.code-workspace
 results/
-*.txt
 test.py
