@@ -48,14 +48,6 @@ https://youtu.be/iSNsgj1OCLA?si=Bgq4OAlChz_tSI_g
    ```
 ---
 
-## 📜 License
-
-MIT License - feel free to contribute or share it.
-
-See LICENSE.md for details.
-
----
-
 ## 🧩 Future Ideas
 - Parallelized simulations for faster results
 - More accurate statistics
